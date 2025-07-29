@@ -1,0 +1,15 @@
+.booking-container {
+  margin: 0;
+  padding: 0;
+}
+.buttonStyle:hover{
+  background-color: #f0f0f0;
+}
+@media (max-width: 1180px){
+  .booking-container {
+      flex-direction: column !important;
+      align-items: center;
+      width: 100%;
+      padding: 0;
+  }
+}
