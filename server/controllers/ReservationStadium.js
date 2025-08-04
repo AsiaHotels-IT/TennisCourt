@@ -25,45 +25,10 @@ exports.list = async (req, res)=>{
 
 exports.create = async (req, res) => {
   try {
-    const data = req.body;
-
-    // ตรวจสอบสมาชิก
-    if (data.memberID) {
-      const member = await Member.findOne({ memberID: data.memberID });
-      if (!member) {
-        return res.status(400).json({ message: 'ไม่พบรหัสสมาชิกนี้ในระบบ' });
-      }
-    }
-    if (!isFullHourDuration(data.startTime, data.endTime)) {
-      return res.status(400).json({ message: 'กรุณาจองเป็นชั่วโมงเต็ม เช่น 10:00 - 11:00, 14:00 - 16:00' });
-    }
-
-    // หา reservation ที่วันที่เดียวกัน
-    const existingReservations = await ReservationStadium.find({ reservDate: data.reservDate, status: { $ne: 'ยกเลิก' } });
-
-    // ตรวจสอบเวลาซ้อนกัน
-    for (const reserv of existingReservations) {
-      if (isTimeOverlap(data.startTime, data.endTime, reserv.startTime, reserv.endTime)) {
-        return res.status(400).json({ message: 'เวลาจองซ้อนกับการจองอื่นแล้ว' });
-      }
-    }
-
-    // คำนวณจำนวนชั่วโมง และคิดราคา
-    const hours = calculateHours(data.startTime, data.endTime);
-    data.amount = hours * 200;
-
-    // สร้างการจองใหม่
-    const reserv = await new ReservationStadium(data).save();
-
-    if (data.memberID) {
-      const member = await Member.findOne({ memberID: data.memberID });
-      if (member) {
-        member.reservationBefore.push(reserv._id);
-        await member.save();
-      }
-    }
-
-    res.send(reserv);
+    var data = req.body;
+    console.log(data);
+    const thisReserv = await new ReservationStadium(data).save();
+    res.send(thisReserv)
 
   } catch (err) {
     console.log(err);

@@ -52,7 +52,15 @@ const ReservationStadiumSchema = mongoose.Schema({
         maxlength: 100,
         default: 'ไม่มี'
     },
-    amount: {
+    beforeVat: {
+        type: Number,
+        default: 0
+    },
+    vat: {
+        type: Number,
+        default: 0
+    },
+    price: {
         type: Number
     },
     receiptNumber: {

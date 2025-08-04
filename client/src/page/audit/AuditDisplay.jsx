@@ -30,7 +30,7 @@ const AuditDisplay = () => {
   }, []);
 
   const promptpayID = process.env.REACT_APP_PROMYPAY_API;
-  const payload = generatePayload(promptpayID, { amount: paymentAmount });
+  const payload = generatePayload(promptpayID, { price: paymentAmount });
 
   return (
     <div>
@@ -62,7 +62,7 @@ const AuditDisplay = () => {
           }}>
             <QRCodeCanvas value={payload} size={320} />
             <p style={{ fontSize: '28px', color: '#ff5e57', marginTop: '20px', fontWeight: 'bold' }}>
-              Amount: {paymentAmount.toFixed(2)} THB
+              Price: {paymentAmount.toFixed(2)} THB
             </p>
           </div>
         </div>

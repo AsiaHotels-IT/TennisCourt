@@ -77,7 +77,7 @@ const Booking = () => {
   const [reprintPassword, setReprintPassword] = useState("");
 
   // สร้าง payload promptpay qr ตามเบอร์และจำนวนเงิน
-  const qrPayload = generatePayload(paymentPromptPayID, { amount: paymentAmount });
+  const qrPayload = generatePayload(paymentPromptPayID, { price: paymentAmount });
 
   useEffect(() => {
     const fetchReservations = async () => {
@@ -200,7 +200,7 @@ const Booking = () => {
       selectedDate: reservDate,
       startTime,
       endTime,
-      price: reservation.amount || '-',  // ใช้ราคาจริงถ้ามี
+      price: reservation.price || '-',  // ใช้ราคาจริงถ้ามี
       createAt: moment(reservation.createAt).format('DD/MM/YYYY HH:mm') || '-'
 
     });
@@ -435,7 +435,7 @@ const Booking = () => {
     }
   };
 
-  const printReceipt = (reservation, paymentMethod, amount, received, changeVal, receiptDate) => {
+  const printReceipt = (reservation, paymentMethod, price, received, changeVal, receiptDate) => {
     const printWindow = window.open('', '', 'width=800,height=600');
     printWindow.document.write(`
     <html>
@@ -557,7 +557,7 @@ const Booking = () => {
     
           <div class="info-row">
             <p><strong>เลขที่ใบเสร็จ:</strong> ${reservation.receiptNumber || '-'}</p>
-            <p><strong>วันที่ออกใบเสร็จ:</strong> ${receiptDate ? new Date(receiptDate).toLocaleString() : '-'}</p>
+            <p><strong>วันที่ออกใบเสร็จ:</strong> ${receiptDate ? new Date().toLocaleString() : '-'}</p>
           </div>
     
           <div class="receipt-details">
@@ -569,7 +569,7 @@ const Booking = () => {
             </div>
             <div class="detail-row"><span class="label">วันที่จอง:</span><span class="value">${reservation.reservDate}</span></div>
             <div class="detail-row"><span class="label">เวลา:</span><span class="value">${reservation.startTime} - ${reservation.endTime}</span></div>
-            <div class="detail-row"><span class="label">ยอดที่ต้องชำระ:</span><span class="value">${amount} บาท</span></div>
+            <div class="detail-row"><span class="label">ยอดที่ต้องชำระ:</span><span class="value">${price} บาท</span></div>
             <div class="detail-row"><span class="label">วันที่ชำระ:</span><span class="value">${reservation.payDate}</span></div>
             <div class="detail-row"><span class="label">วิธีชำระเงิน:</span><span class="value">${paymentMethod}</span></div>
             ${paymentMethod === 'เงินสด' ? `
@@ -605,14 +605,14 @@ const Booking = () => {
   };
 
   // ฟังก์ชันชำระเงิน
-  const openPaymentModal = (amount, bookingData) => {
-    setPaymentAmount(amount);
+  const openPaymentModal = (price, bookingData) => {
+    setPaymentAmount(price);
     setPaymentType('โอนผ่านธนาคาร');
     setCashReceived('');
     setChange(0);
     setPaymentModalOpen(true);
 
-    localStorage.setItem('paymentAmount', amount);
+    localStorage.setItem('paymentAmount', price);
     localStorage.setItem('cusName', bookingData.cusName);
     localStorage.setItem('reservID', bookingData.reservID);
     localStorage.setItem('cusTel', bookingData.cusTel);
@@ -632,6 +632,27 @@ const Booking = () => {
   };
 
   // ยืนยันการชำระเงิน
+  const generateReceiptNumber = (lastReceiptNumber) => {
+      // หาเลขใบเสร็จล่าสุดของปีนี้
+      const now = new Date();
+      const buddhistYear = now.getFullYear() + 543;
+      const yearShort = String(buddhistYear).slice(-2);
+  
+      // ดึงลำดับล่าสุดจาก lastReceiptNumber (ถ้ามี)
+      let seq = 1;
+      if (lastReceiptNumber) {
+        // ตัวอย่าง lastReceiptNumber: TN680001
+        const match = lastReceiptNumber.match(/^TN(\d{2})(\d{4})$/);
+        if (match && match[1] === yearShort) {
+          seq = parseInt(match[2], 10) + 1;
+        }
+      }
+      // ลำดับ 4 หลัก เติม 0 ข้างหน้า
+      const seqStr = seq.toString().padStart(4, '0');
+      return `TN${yearShort}${seqStr}`;
+    };
+  
+    // ในฟังก์ชัน handleConfirmPayment
   const handleConfirmPayment = async () => {
     if (!selectedEvent) return;
 
@@ -652,17 +673,31 @@ const Booking = () => {
     }
 
     try {
-      // สุ่มเลขใบเสร็จเฉพาะถ้ามีการชำระเงินแล้ว (ไม่ใช่ 'ยังไม่ชำระเงิน')
-      let receiptNumber = null;
-      if (method !== 'ยังไม่ชำระเงิน') {
-        receiptNumber = generateReceiptNumber();
+      // ดึงเลขใบเสร็จล่าสุดของปีนี้จากฐานข้อมูล
+      let lastReceiptNumber = null;
+      if (events && events.length > 0) {
+        const now = new Date();
+        const buddhistYear = now.getFullYear() + 543;
+        const yearShort = String(buddhistYear).slice(-2);
+        // filter เฉพาะใบเสร็จปีนี้
+        const yearReceipts = events
+          .map(ev => ev.receiptNumber)
+          .filter(rn => rn && rn.startsWith(`TN${yearShort}`));
+        // เอาลำดับสูงสุด
+        if (yearReceipts.length > 0) {
+          lastReceiptNumber = yearReceipts.sort().slice(-1)[0];
+        }
       }
 
-      // อัพเดตข้อมูลพร้อมเลขใบเสร็จ (ถ้ามี)
+      let receiptNumber = null;
+      if (method !== 'ยังไม่ชำระเงิน') {
+        receiptNumber = generateReceiptNumber(lastReceiptNumber);
+      }
+
       await updateReservations(selectedEvent.reservID, {
         ...selectedEvent,
         paymentMethod: method,
-        receiptNumber, // เพิ่มเลขใบเสร็จเข้าไปในข้อมูล
+        receiptNumber,
         receiptDate: new Date(),
         received,
         changeVal,
@@ -673,26 +708,22 @@ const Booking = () => {
       setReceiptData({
         ...selectedEvent,
         paymentMethod: method,
-        amount: paymentAmount,
+        price: paymentAmount,
         received,
         changeVal,
         receiptNumber,
-        payDate: moment().format('DD/MM/YYYY HH:mm')
+        receiptDate: moment().format('DD/MM/YYYY HH:mm'),
+        payDate: moment().format('DD/MM/YYYY HH:mm'),
       });
 
       setIsReceiptModalOpen(true);
       setPaymentModalOpen(false);
 
-      // รีเฟรชข้อมูลหลังอัพเดต
       const res = await getReservations();
       setEvents(mapReservationsToEvents(res.data));
     } catch (err) {
       alert('บันทึกข้อมูลการชำระเงินล้มเหลว');
     }
-  };
-
-  const generateReceiptNumber = () => {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
   };
 
   const buttonStyle = {
@@ -730,7 +761,7 @@ const Booking = () => {
       printReceipt(
         selectedEvent,
         selectedEvent.paymentMethod,
-        selectedEvent.amount || 0,
+        selectedEvent.price || 0,
         selectedEvent.received || 0,
         selectedEvent.changeVal || 0,
         selectedEvent.receiptDate
@@ -918,6 +949,8 @@ const Booking = () => {
             ref={calendarRef}
             localizer={calendarLocalizer}
             formats={formats}
+            min={new Date(1970, 1, 1, 7, 0)}    // เริ่มต้นที่ 07:00
+            max={new Date(1970, 1, 1, 22, 0)}   // สิ้นสุดที่ 22:00
             events={events}
             startAccessor="start"
             endAccessor="end"
@@ -1026,7 +1059,7 @@ const Booking = () => {
                   <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => openPaymentModal(Number(selectedEvent.amount), selectedEvent)}
+                    onClick={() => openPaymentModal(Number(selectedEvent.price), selectedEvent)}
                     style={{
                       padding: '6px 18px',
                       fontSize: '18px',
@@ -1290,7 +1323,7 @@ const Booking = () => {
                 <div>
                   <div>เลขที่ใบจอง: {receiptData.reservID}</div>
                   <div>ชื่อผู้จอง: {receiptData.cusName}</div>
-                  <div>ยอดที่ชำระ: {receiptData.amount} บาท</div>
+                  <div>ยอดที่ชำระ: {receiptData.price} บาท</div>
                   <div>วิธีชำระเงิน: {receiptData.paymentMethod}</div>
                   {receiptData.paymentMethod === 'เงินสด' && (
                     <>
@@ -1299,7 +1332,7 @@ const Booking = () => {
                     </>
                   )}
                   <Button sx={{ mt: 2 }} variant="contained" onClick={() => {
-                    printReceipt(receiptData, receiptData.paymentMethod, receiptData.amount, receiptData.received, receiptData.changeVal);
+                    printReceipt(receiptData, receiptData.paymentMethod, receiptData.price, receiptData.received, receiptData.changeVal);
                     setIsReceiptModalOpen(false);
                   }}>พิมพ์ใบเสร็จ (A5)</Button>
                 </div>

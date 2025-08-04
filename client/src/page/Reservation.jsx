@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import TimePicker from 'react-time-picker';
 import 'react-time-picker/dist/TimePicker.css';
 import 'react-clock/dist/Clock.css';
@@ -6,11 +6,49 @@ import { createReservations } from '../function/reservation';
 import logo from '../img/logo.png'; 
 import moment from 'moment';
 
+// ฟังก์ชั่นคำนวณราคา (ช่วงเวลา + นาที)
+const calculatePrice = (start, end) => {
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+
+  let total = 0;
+  let currentH = startH;
+  let currentM = startM;
+
+  while (currentH < endH || (currentH === endH && currentM < endM)) {
+    let nextHour = currentH + 1;
+    let nextMinute = 0;
+
+    let minutes = 60;
+    if (nextHour > endH || (nextHour === endH && endM === 0)) {
+      minutes = (endH * 60 + endM) - (currentH * 60 + currentM);
+      if (minutes <= 0) break;
+    }
+
+    if (currentH >= 7 && currentH < 18) {
+      total += (450 / 60) * minutes;
+    } else if (currentH >= 18 && currentH < 22) {
+      total += (600 / 60) * minutes;
+    }
+    currentH = nextHour;
+    currentM = nextMinute;
+  }
+  return Math.round(total * 100) / 100; // ทศนิยม 2 ตำแหน่ง
+};
+
+// ฟังก์ชั่นคำนวณ VAT
+const calculateVat = (amount, vatRate = 0.07) => {
+  const beforeVat = +(amount / (1 + vatRate)).toFixed(2);
+  const vat = +(amount - beforeVat).toFixed(2);
+  return { beforeVat, vat, amount: +amount.toFixed(2) };
+};
 
 const Reservation = ({ selectedDate }) => {
   const [startTime, setStartTime] = useState('00:00');
   const [endTime, setEndTime] = useState('00:00');
   const [price, setPrice] = useState(0);
+  const [beforeVat, setBeforeVat] = useState(0);
+  const [vat, setVat] = useState(0);
   const [error, setError] = useState('');
   const [memberID, setMemberID] = useState('');
   const [cusName, setCusName] = useState('');
@@ -19,40 +57,39 @@ const Reservation = ({ selectedDate }) => {
 
   useEffect(() => {
     if (startTime && endTime) {
-      const hours = calculateHours(startTime, endTime);
-      if (hours <= 0) {
+      const [startH, startM] = startTime.split(':').map(Number);
+      const [endH, endM] = endTime.split(':').map(Number);
+      const startTotal = startH * 60 + startM;
+      const endTotal = endH * 60 + endM;
+
+      if (endTotal <= startTotal) {
         setPrice(0);
+        setBeforeVat(0);
+        setVat(0);
         setError('กรุณาเลือกเวลาที่ถูกต้อง (เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น)');
       } else {
-        setPrice(hours * 200);
+        const amount = calculatePrice(startTime, endTime);
+        const { beforeVat, vat } = calculateVat(amount);
+        setPrice(amount);
+        setBeforeVat(beforeVat);
+        setVat(vat);
         setError('');
       }
     }
   }, [startTime, endTime]);
 
-  const calculateHours = (start, end) => {
-    const [startH, startM] = start.split(':').map(Number);
-    const [endH, endM] = end.split(':').map(Number);
-
-    const startTotal = startH * 60 + startM;
-    const endTotal = endH * 60 + endM;
-
-    const diffMinutes = endTotal - startTotal;
-    return diffMinutes > 0 ? diffMinutes / 60 : 0;
-  };
-
   const handleAddBooking = async (e) => {
     e.preventDefault();
-    
+
     // สร้าง moment ของวันและเวลาเริ่มจอง
     const bookingStart = moment(`${selectedDate} ${startTime}`, 'DD/MM/YYYY HH:mm');
     const now = moment();
-    
+
     if (bookingStart.isSameOrBefore(now)) {
       alert('ไม่สามารถจองในเวลาที่ผ่านมาแล้ว กรุณาเลือกวันและเวลาใหม่');
       return;
     }
-  
+
     try {
       const payload = {
         memberID,
@@ -63,11 +100,13 @@ const Reservation = ({ selectedDate }) => {
         startTime,
         endTime,
         price,
-        username: user.name
+        beforeVat: beforeVat,
+        vat: vat,
+        username: user.name,
       };
-    
+
       const response = await createReservations(payload);
-    
+
       alert('จองสนามสำเร็จ');
       printReservationForm({
         cusName,
@@ -76,13 +115,15 @@ const Reservation = ({ selectedDate }) => {
         startTime,
         endTime,
         price,
+        beforeVat,
+        vat,
         reservID: response.data.reservID,
         memberID: response.data.memberID,
         paymentMethod: response.data.paymentMethod,
         refPerson: response.data.refPerson,
       });
       window.location.reload();
-    
+
     } catch (error) {
       if (error.response && error.response.data && error.response.data.message) {
         alert(error.response.data.message);
@@ -93,186 +134,170 @@ const Reservation = ({ selectedDate }) => {
   };
 
   const printReservationForm = (reservation) => {
-      const reservDate = reservation.reservDate;
-      const startTime = reservation.startTime;
-      const endTime = reservation.endTime;
-  
-      printReservationFormContent({
-        reservID: reservation.reservID,
-        memID: reservation.memberID || '-',  // ใช้ memberID ถ้ามี
-        paymentMethod: reservation.paymentMethod || '-',  // ใช้ paymentMethod ถ้ามี
-        reffPerson: reservation.refPerson || '-',  // ใช้ refPerson ถ้ามี
-        cusName: reservation.cusName,
-        cusTel: reservation.cusTel || '-',
-        selectedDate: reservDate,
-        startTime,
-        endTime,
-        price: price || '-',  // ใช้ราคาจริงถ้ามี
-        createAt: moment(reservation.createAt).format('DD/MM/YYYY HH:mm') || '-'
-      });
-    };
-  
-    const printReservationFormContent = ({ cusName, cusTel, selectedDate, startTime, endTime, price, reservID, memID, paymentMethod, reffPerson, createAt }) => {
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(`
-        <html>
-          <head>
-            <title>ใบจองสนามเทนนิส</title>
-            <style>
-              @media print {
-                @page {
-                  size: A5 portrait;
-                  margin: 0;
-                }
-              }
-            
-              body {
-                font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
-                font-size: 16pt;
-                color: #000;
+    const reservDate = reservation.reservDate;
+    const startTime = reservation.startTime;
+    const endTime = reservation.endTime;
+
+    printReservationFormContent({
+      reservID: reservation.reservID,
+      memID: reservation.memberID || '-',
+      paymentMethod: reservation.paymentMethod || '-',
+      reffPerson: reservation.refPerson || '-',
+      cusName: reservation.cusName,
+      cusTel: reservation.cusTel || '-',
+      selectedDate: reservDate,
+      startTime,
+      endTime,
+      price: price || '-',
+      beforeVat: beforeVat || '-',
+      vat: vat || '-',
+      createAt: moment(reservation.createAt).format('DD/MM/YYYY HH:mm') || '-'
+    });
+  };
+
+  const printReservationFormContent = ({ cusName, cusTel, selectedDate, startTime, endTime, price, beforeVat, vat, reservID, memID, paymentMethod, reffPerson, createAt }) => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>ใบจองสนามเทนนิส</title>
+          <style>
+            @media print {
+              @page {
+                size: A5 portrait;
                 margin: 0;
-                padding: 0;
-                background: #fff;
               }
-            
-              .container {
-                width: 100%;
-                max-width: 480px;
-                margin: auto;
-                padding: 10px;
-                box-sizing: border-box;
-              }
-              
-              .header {
-                text-align: center;
-                margin-bottom: 20px;
-              }
-            
-              .header img {
-                height: 80px;
-                width: auto;
-                margin-bottom: 10px;
-              }
-            
-              .header h2 {
-                margin: 0;
-                font-size: 18pt;
-              }
-            
-              .header p {
-                margin: 0;
-                font-size: 14pt;
-              }
-            
-              .contact-info {
-                margin-top: 5px;
-                font-size: 14pt;
-              }
-            
-              .title {
-                text-align: center;
-                font-size: 18pt;
-                font-weight: bold;
-                margin: 20px 0 10px 0;
-              }
-            
-              .info-row {
-                display: flex;
-                justify-content: space-between;
-                font-size: 14pt;
-                margin-bottom: 10px;
-              }
-            
-              .reservation-details {
-                border: 1px solid #000;
-                border-radius: 10px;
-                padding: 20px;
-                background-color: #fff;
-                margin-top: 10px;
-              }
-            
-              .detail-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 8px;
-              }
-            
-              .label {
-                font-weight: bold;
-                color: #000;
-              }
-            
-              .value {
-                color: #000;
-              }
-                
-              .signature-container {
-                display: flex;
-                justify-content: space-between;
-                padding: 0 20px;
-              }
-            
-              .signature-block {
-                text-align: center;
-                width: 40%;
-                font-size: 14pt;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <img src="${logo}" alt="Logo">    
-                <h2>โรงแรมเอเชีย</h2>
-                <p>296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400</p>  
-                <div class="contact-info">
-                  <p><strong>โทรศัพท์:</strong> 02-217-0808 &nbsp; <strong>อีเมล:</strong> booking@asiahotel.co.th</p>
-                </div>       
+            }
+            body {
+              font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
+              font-size: 16pt;
+              color: #000;
+              margin: 0;
+              padding: 0;
+              background: #fff;
+            }
+            .container {
+              width: 100%;
+              max-width: 480px;
+              margin: auto;
+              padding: 10px;
+              box-sizing: border-box;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 20px;
+            }
+            .header img {
+              height: 80px;
+              width: auto;
+              margin-bottom: 10px;
+            }
+            .header h2 {
+              margin: 0;
+              font-size: 18pt;
+            }
+            .header p {
+              margin: 0;
+              font-size: 14pt;
+            }
+            .contact-info {
+              margin-top: 5px;
+              font-size: 14pt;
+            }
+            .title {
+              text-align: center;
+              font-size: 18pt;
+              font-weight: bold;
+              margin: 20px 0 10px 0;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              font-size: 14pt;
+              margin-bottom: 10px;
+            }
+            .reservation-details {
+              border: 1px solid #000;
+              border-radius: 10px;
+              padding: 20px;
+              background-color: #fff;
+              margin-top: 10px;
+            }
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            }
+            .label {
+              font-weight: bold;
+              color: #000;
+            }
+            .value {
+              color: #000;
+            }
+            .signature-container {
+              display: flex;
+              justify-content: space-between;
+              padding: 0 20px;
+            }
+            .signature-block {
+              text-align: center;
+              width: 40%;
+              font-size: 14pt;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <img src="${logo}" alt="Logo">    
+              <h2>โรงแรมเอเชีย</h2>
+              <p>296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400</p>  
+              <div class="contact-info">
+                <p><strong>โทรศัพท์:</strong> 02-217-0808 &nbsp; <strong>อีเมล:</strong> booking@asiahotel.co.th</p>
+              </div>       
+            </div>
+            <div class="title">ใบจองสนามเทนนิส</div>
+            <div class="info-row">
+              <p><strong>หมายเลขการจอง:</strong> 00${reservID}</p>
+              <p><strong>วันที่:</strong> ${createAt}</p>
+            </div>
+            <div class="reservation-details">
+              <div class="detail-row"><span class="label">หมายเลขสมาชิก:</span><span class="value">${memID}</span></div>
+              <div class="detail-row"><span class="label">ชื่อผู้จอง:</span><span class="value">${cusName}</span></div>
+              <div class="detail-row"><span class="label">เบอร์โทร:</span><span class="value">${cusTel || '-'}</span></div>
+              <div class="detail-row"><span class="label">วันที่จอง:</span><span class="value">${selectedDate}</span></div>
+              <div class="detail-row"><span class="label">เวลา:</span><span class="value">${startTime} - ${endTime}</span></div>
+              <div class="detail-row"><span class="label">มูลค่าก่อนภาษี:</span><span class="value">${beforeVat} บาท</span></div>
+              <div class="detail-row"><span class="label">ภาษีมูลค่าเพิ่ม:</span><span class="value">${vat} บาท</span></div>
+              <div class="detail-row"><span class="label">ราคาทั้งหมด:</span><span class="value">${price} บาท</span></div>
+              <div class="detail-row"><span class="label">สถานะชำระเงิน:</span><span class="value">${paymentMethod}</span></div>
+              <div class="detail-row"><span class="label">บุคคลอ้างอิง:</span><span class="value">${reffPerson}</span></div>
+            </div>
+            <div class="signature-container">
+              <div class="signature-block">
+                <p>ลงชื่อ....................................</p>
+                <p>(พนักงาน)</p>
               </div>
-            
-              <div class="title">ใบจองสนามเทนนิส</div>
-            
-              <div class="info-row">
-                <p><strong>หมายเลขการจอง:</strong> 00${reservID}</p>
-                <p><strong>วันที่:</strong> ${createAt}</p>
-              </div>
-            
-              <div class="reservation-details">
-                <div class="detail-row"><span class="label">หมายเลขสมาชิก:</span><span class="value">${memID}</span></div>
-                <div class="detail-row"><span class="label">ชื่อผู้จอง:</span><span class="value">${cusName}</span></div>
-                <div class="detail-row"><span class="label">เบอร์โทร:</span><span class="value">${cusTel || '-'}</span></div>
-                <div class="detail-row"><span class="label">วันที่จอง:</span><span class="value">${selectedDate}</span></div>
-                <div class="detail-row"><span class="label">เวลา:</span><span class="value">${startTime} - ${endTime}</span></div>
-                <div class="detail-row"><span class="label">ราคาทั้งหมด:</span><span class="value">${price || '-'} บาท</span></div>
-                <div class="detail-row"><span class="label">สถานะชำระเงิน:</span><span class="value">${paymentMethod}</span></div>
-                <div class="detail-row"><span class="label">บุคคลอ้างอิง:</span><span class="value">${reffPerson}</span></div>
-              </div>
-            
-              <div class="signature-container">
-                <div class="signature-block">
-                  <p>ลงชื่อ....................................</p>
-                  <p>(พนักงาน)</p>
-                </div>
-            
-                <div class="signature-block">
-                  <p>ลงชื่อ....................................</p>
-                  <p>(ลูกค้า)</p>
-                </div>
+              <div class="signature-block">
+                <p>ลงชื่อ....................................</p>
+                <p>(ลูกค้า)</p>
               </div>
             </div>
-            <script>
-              window.onload = function () {
-                window.print();
-                window.onafterprint = function() {
-                  window.close();
-                };
-              }
-            </script>
-          </body>
-        </html>
-        `);
-        printWindow.document.close();
-      };
+          </div>
+          <script>
+            window.onload = function () {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const labelStyle = {
     display: 'block',
@@ -305,9 +330,8 @@ const Reservation = ({ selectedDate }) => {
     boxSizing: 'border-box',
   };
 
-    //ดึงข้อมูล user จาก localStorage
+  //ดึงข้อมูล user จาก localStorage
   const user = JSON.parse(localStorage.getItem('user') || 'null');
-
 
   return (
     <div style={{  
@@ -317,9 +341,9 @@ const Reservation = ({ selectedDate }) => {
       backgroundColor: '#fff',
       display: 'flex',
       flexDirection: 'column',
-      height: '100%', // ให้กล่องสูงเต็มพื้นที่
-      minHeight: 600, // หรือกำหนดตามที่ต้องการ
-      position: 'relative' // สำหรับ absolute ด้านล่างถ้าต้องการ
+      height: '100%',
+      minHeight: 600,
+      position: 'relative'
     }}>
       <div style={{ marginBottom: '25px', borderBottom: '2px solid #65000a', paddingBottom: '8px' }}>
         <h2 style={{ color: '#65000a', margin: 0 }}>รายละเอียดการจอง</h2>
@@ -397,6 +421,12 @@ const Reservation = ({ selectedDate }) => {
           </p>
         )}
 
+        <div style={{ marginBottom: '18px', fontSize: '15px' }}>
+          <div>มูลค่าก่อนภาษี: <strong>{beforeVat}</strong> บาท</div>
+          <div>ภาษีมูลค่าเพิ่ม (VAT 7%): <strong>{vat}</strong> บาท</div>
+          <div>ราคารวมทั้งสิ้น: <strong>{price}</strong> บาท</div>
+        </div>
+
         <div style={{ textAlign: 'center' }}>
           <button
             type="button"
@@ -419,7 +449,6 @@ const Reservation = ({ selectedDate }) => {
           </button>
         </div>
       </form>
-      
     </div>
   );
 };
