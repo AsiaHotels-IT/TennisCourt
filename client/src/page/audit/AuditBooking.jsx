@@ -5,7 +5,7 @@ import 'moment/locale/th';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-import { getReservations, getReservationById, updateReservations, deleteReservations } from '../../function/reservation';
+import { getReservations, getReservationById, updateReservations,payReservation, deleteReservations } from '../../function/reservation';
 import AuditReservation from './AuditReservation';
 import logo from '../../img/logo.png'; 
 import { Modal, Box, Button, RadioGroup, FormControlLabel, Radio, TextField } from '@mui/material';
@@ -74,6 +74,8 @@ const AuditBooking = () => {
   const [showSearchList, setShowSearchList] = useState(false);
   const calendarRef = useRef(null);
   const [reprintPassword, setReprintPassword] = useState("");
+  const [reprintCode, setReprintCode] = useState("");
+  
 
   // สร้าง payload promptpay qr ตามเบอร์และจำนวนเงิน
   const qrPayload = generatePayload(paymentPromptPayID, { price: paymentAmount });
@@ -219,7 +221,6 @@ const AuditBooking = () => {
               margin: 0;
             }
           }
-
           body {
             font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
             font-size: 16pt;
@@ -228,84 +229,69 @@ const AuditBooking = () => {
             padding: 0;
             background: #fff;
           }
-
           .container {
             width: 100%;
-            max-width: 480px;
+            max-width: 800px;
             margin: auto;
             padding: 10px;
             box-sizing: border-box;
           }
-
           .header {
-            text-align: center;
-            margin-bottom: 20px;
-          }
-
-          .header img {
-            height: 80px;
-            width: auto;
-            margin-bottom: 10px;
-          }
-
-          .header h2 {
-            margin: 0;
-            font-size: 18pt;
-          }
-
-          .header p {
-            margin: 0;
-            font-size: 14pt;
-          }
-
-          .contact-info {
-            margin-top: 5px;
-            font-size: 14pt;
-          }
-
-          .title {
-            text-align: center;
-            font-size: 18pt;
-            font-weight: bold;
-            margin: 20px 0 10px 0;
-          }
-
-          .info-row {
+            text-align: left;
             display: flex;
             justify-content: space-between;
-            font-size: 14pt;
+            flex-direction: row;
             margin-bottom: 10px;
           }
-
-          .reservation-details {
-            border: 1px solid #000;
-            border-radius: 10px;
-            padding: 20px;
-            background-color: #fff;
+          .companyAddress{
             margin-top: 10px;
           }
-
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
+          .header img {
+            height: 110px;
+            width: auto;
           }
-
-          .label {
+          .company {
+            font-size: 18pt;
             font-weight: bold;
-            color: #000;
           }
-
-          .value {
-            color: #000;
+          .address {
+            font-size: 13pt;
           }
-
-          .signature-container {
+          .title {
+            text-align: center;
+            font-size: 20pt;
+            font-weight: bold;
+            margin: 10px 0 10px 0;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+          }
+          th, td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            font-size: 14pt;
+            text-align: left;
+          }
+          th {
+            background: #f2f2f2;
+            font-weight: bold;
+          }
+          .no-border {
+            border: none !important;
+          }
+          .right {
+            text-align: right;
+          }
+          .center {
+            text-align: center;
+          }
+          .signature {
+            margin-top: 30px;
             display: flex;
             justify-content: space-between;
-            padding: 0 20px;
           }
-
           .signature-block {
             text-align: center;
             width: 40%;
@@ -316,38 +302,82 @@ const AuditBooking = () => {
       <body>
         <div class="container">
           <div class="header">
-            <img src="${logo}" alt="Logo">    
-            <h2>โรงแรมเอเชีย</h2>
-            <p>296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400</p>  
-            <div class="contact-info">
-              <p><strong>โทรศัพท์:</strong> 02-217-0808 &nbsp; <strong>อีเมล:</strong> booking@asiahotel.co.th</p>
-            </div>       
+            <div><img src="${logo}" alt="Logo"></div>
+            <div class="companyAddress">
+              <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
+              <span class="address">296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400<br>
+              เลขประจำตัวผู้เสียภาษี 0107535000346 โทร 02-2170808 ต่อ 5340</span>
+            </div>  
           </div>
-
           <div class="title">ใบจองสนามเทนนิส</div>
-
-          <div class="info-row">
-            <p><strong>หมายเลขการจอง:</strong> 00${reservID}</p>
-            <p><strong>วันที่:</strong> ${createAt}</p>
-          </div>
-
-          <div class="reservation-details">
-            <div class="detail-row"><span class="label">หมายเลขสมาชิก:</span><span class="value">${memID}</span></div>
-            <div class="detail-row"><span class="label">ชื่อผู้จอง:</span><span class="value">${cusName}</span></div>
-            <div class="detail-row"><span class="label">เบอร์โทร:</span><span class="value">${cusTel || '-'}</span></div>
-            <div class="detail-row"><span class="label">วันที่จอง:</span><span class="value">${selectedDate}</span></div>
-            <div class="detail-row"><span class="label">เวลา:</span><span class="value">${startTime} - ${endTime}</span></div>
-            <div class="detail-row"><span class="label">ราคาทั้งหมด:</span><span class="value">${price || '-'} บาท</span></div>
-            <div class="detail-row"><span class="label">สถานะชำระเงิน:</span><span class="value">${paymentMethod}</span></div>
-            <div class="detail-row"><span class="label">บุคคลอ้างอิง:</span><span class="value">${reffPerson}</span></div>
-          </div>
-
-          <div class="signature-container">
+          <table>
+            <tr>
+              <td>ชื่อผู้จอง: ${cusName}</td>
+              <td>หมายเลขสมาชิก: ${memID}</td>
+              <td>หมายเลขการจอง: ${reservID}</td>
+            </tr>
+            <tr>
+              <td>วันที่จอง: ${selectedDate}</td>
+              <td>เวลา: ${startTime} - ${endTime}</td>
+              <td>วันที่ออกเอกสาร: ${(() => {
+                if (!createAt) return '-';
+                const match = String(createAt).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                if (match) {
+                  const day = match[1];
+                  const month = match[2];
+                  const year = (parseInt(match[3], 10) + 543).toString();
+                  return `${day}/${month}/${year}`;
+                }
+                const iso = String(createAt).match(/(\d{4})-(\d{2})-(\d{2})/);
+                if (iso) {
+                  const day = iso[3];
+                  const month = iso[2];
+                  const year = (parseInt(iso[1], 10) + 543).toString();
+                  return `${day}/${month}/${year}`;
+                }
+                if (createAt instanceof Date) {
+                  const day = createAt.getDate().toString().padStart(2, '0');
+                  const month = (createAt.getMonth() + 1).toString().padStart(2, '0');
+                  const year = (createAt.getFullYear() + 543).toString();
+                  return `${day}/${month}/${year}`;
+                }
+                return String(createAt);
+              })()}</td>
+            </tr>
+            <tr>
+              <td>เบอร์โทร: ${cusTel}</td>
+              <td>สถานะชำระเงิน: ${paymentMethod}</td>
+              <td>บุคคลอ้างอิง: ${reffPerson}</td>
+            </tr>
+          </table>
+          <table>
+            <tr>
+              <th class="center">ลำดับที่<br>Item</th>
+              <th class="center">รายการ<br>Descriptions</th>
+              <th class="center">จำนวน<br>Quantity</th>
+              <th class="center">ราคาต่อหน่วย<br>Unit price</th>
+              <th class="center">จำนวนเงิน<br>Amount</th>
+            </tr>
+            <tr>
+              <td class="center">1</td>
+              <td class="center">Tennis 1 ชั่วโมง</td>
+              <td class="center">1</td>
+              <td class="right">${price || '-'}</td>
+              <td class="right">${price || '-'}</td>
+            </tr>
+          </table>
+          <table>
+            <tr>
+              <td class="no-border">ตัวเลือกการชำระเงิน:</td>
+              <td class="no-border center">เงินสด <input type="checkbox" ${paymentMethod === 'เงินสด' ? 'checked' : ''} disabled> &nbsp; โอนผ่านธนาคาร <input type="checkbox" ${paymentMethod === 'โอนผ่านธนาคาร' ? 'checked' : ''} disabled></td>
+              <td class="no-border right">ราคาสุทธิ (รวมภาษีมูลค่าเพิ่ม): <b>${price || '-'} บาท</b></td>
+            </tr>
+          </table>
+          <div class="signature">
             <div class="signature-block">
               <p>ลงชื่อ....................................</p>
               <p>(พนักงาน)</p>
             </div>
-
             <div class="signature-block">
               <p>ลงชื่อ....................................</p>
               <p>(ลูกค้า)</p>
@@ -367,7 +397,6 @@ const AuditBooking = () => {
     `);
     printWindow.document.close();
   };
-
   const handleEventDrop = ({ event, start, end, allDay }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -432,7 +461,7 @@ const AuditBooking = () => {
     }
   };
 
-  const printReceipt = (reservation, paymentMethod, price, received, changeVal, receiptDate, payDate) => {
+  const printReceipt = (reservation, paymentMethod, price, received, changeVal, receiptDate) => {
     const printWindow = window.open('', '', 'width=800,height=600');
     printWindow.document.write(`
     <html>
@@ -445,7 +474,6 @@ const AuditBooking = () => {
               margin: 0;
             }
           }
-    
           body {
             font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
             font-size: 16pt;
@@ -454,137 +482,262 @@ const AuditBooking = () => {
             padding: 0;
             background: #fff;
           }
-    
           .container {
             width: 100%;
-            max-width: 480px;
+            max-width: 800px;
             margin: auto;
             padding: 10px;
             box-sizing: border-box;
           }
-          
           .header {
-            text-align: center;
-            margin-bottom: 20px;
-          }
-    
-          .header img {
-            height: 80px;
-            width: auto;
+            display: flex;
+            justify-content: space-between;
+            flex-direction: row;
             margin-bottom: 10px;
           }
-    
-          .header h2 {
-            margin: 0;
-            font-size: 18pt;
+          .companyAddress{
+            margin-top: 10px;
           }
-    
-          .header p {
-            margin: 0;
-            font-size: 14pt;
+          .company {
+            font-size: 16pt;
+            font-weight: bold;
           }
-    
-          .contact-info {
-            margin-top: 5px;
-            font-size: 14pt;
+          .address {
+            font-size: 11pt;
           }
-    
           .title {
+            background: linear-gradient(180deg, #b2c6e2 80%, #a2b6d6 100%);
+            color: #000;
+            border-radius: 15px;
             text-align: center;
-            font-size: 18pt;
+            font-size: 16pt;
             font-weight: bold;
-            margin: 20px 0 10px 0;
+            padding: 18px 0 10px 0;
+            border: 1px solid #7a8bb7;
+            width: 42%;
+            box-sizing: border-box;
           }
-    
-          .info-row {
+          .cusData {
             display: flex;
+            flex-direction: row;
             justify-content: space-between;
-            font-size: 14pt;
             margin-bottom: 10px;
+            height: 120px;
           }
-    
-          .receipt-details {
-            border: 1px solid #000;
-            border-radius: 10px;
-            padding: 20px;
-            background-color: #fff;
-            margin-top: 5px;
+          table {
+            width: 100%;
+            border-collapse: collapse;
           }
-    
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
+          th, td {
+            border: 1px solid #4169e1;
+            border-bottom: none;
+            padding: 6px 8px;
+            font-size: 14pt;
+            text-align: left;
           }
-    
-          .label {
+          th {
+            background: #dde6f7;
             font-weight: bold;
-            color: #000;
           }
-    
-          .value {
-            color: #000;
+          .amount-table{
+            border: 1px solid #4169e1;
           }
-            
-          .signature-container {
+          .no-border {
+            border: none !important;
+          }
+          .right {
+            text-align: right;
+          }
+          .center {
+            text-align: center;
+          }
+          .signature {
+            margin-top: 10px;
             display: flex;
+            flex-direction: row;
             justify-content: space-between;
-            padding: 0 20px;
           }
-    
           .signature-block {
             text-align: center;
             width: 40%;
             font-size: 14pt;
+          }
+          .cusData-left {
+            border: 2px solid #4169e1;
+            width: 60%;
+          }
+          .cusData-left tr td {
+            border: none;
+            font-size: 15pt;
+          }
+          .cusData-right {
+            border: 2px solid #4169e1;
+            width: 35%;
+          }
+          .cusData-right tr td {
+            border: none;
+            font-size: 15pt;
           }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <img src="${logo}" alt="Logo">    
-            <h2>โรงแรมเอเชีย</h2>
-            <p>296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400</p>  
-            <div class="contact-info">
-              <p><strong>โทรศัพท์:</strong> 02-217-0808 &nbsp; <strong>อีเมล:</strong> booking@asiahotel.co.th</p>
-            </div>       
+            <div class="companyAddress">
+              <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
+              <span class="address">296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400<br>
+              เลขประจำตัวผู้เสียภาษี 0107535000346 <br/> โทร 02-2170808 ต่อ 5340</span>
+            </div>  
+            <div class="title">
+              <span>ใบเสร็จรับเงิน/ใบกำกับภาษีอย่างย่อ</span><br>
+              <span>ต้นฉบับ</span>
+            </div>  
           </div>
-    
-          <div class="title">ใบเสร็จรับเงินสนามเทนนิส</div>
-    
-          <div class="info-row">
-            <p><strong>เลขที่ใบเสร็จ:</strong> ${reservation.receiptNumber || '-'}</p>
-            <p><strong>วันที่ออกใบเสร็จ:</strong> ${receiptDate ? new Date(receiptDate).toLocaleString() : '-'}</p>
-          </div>
-    
-          <div class="receipt-details">
-            <div class="detail-row"><span class="label">หมายเลขการจอง:</span><span class="value">${reservation.reservID}</span></div>
-            <div class="detail-row">
-              <span class="label">ชื่อผู้จอง:</span><span class="value" >${reservation.cusName}</span>
-              &nbsp;&nbsp;&nbsp;&nbsp;
-              <span class="label">เบอร์โทร:</span><span class="value">${reservation.cusTel || '-'}</span>
+          <div class="cusData">
+            <div class="cusData-left">
+              <table>
+                <tr>
+                  <td><strong>ชื่อลูกค้า :</strong> ${reservation.cusName}</td>
+                  <td><strong>หมายเลขการจอง :</strong> ${reservation.reservID}</td>
+                </tr>
+                <tr>
+                  <td><strong>วันที่จอง :</strong> ${(() => {
+                    if (!reservation.reservDate) return '-';
+                    const match = String(reservation.reservDate).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                    if (match) {
+                      const day = match[1].padStart(2, '0');
+                      const month = match[2].padStart(2, '0');
+                      const year = (parseInt(match[3], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    const iso = String(reservation.reservDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (iso) {
+                      const day = iso[3];
+                      const month = iso[2];
+                      const year = (parseInt(iso[1], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    return String(reservation.reservDate);
+                  })()}</td>
+                  <td><strong>เวลา :</strong> ${reservation.startTime} - ${reservation.endTime}</td>
+                </tr>
+                <tr>
+                  <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
+                </tr>
+              </table>
             </div>
-            <div class="detail-row"><span class="label">วันที่จอง:</span><span class="value">${reservation.reservDate}</span></div>
-            <div class="detail-row"><span class="label">เวลา:</span><span class="value">${reservation.startTime} - ${reservation.endTime}</span></div>
-            <div class="detail-row"><span class="label">ยอดที่ต้องชำระ:</span><span class="value">${price} บาท</span></div>
-            <div class="detail-row"><span class="label">วันที่ชำระ:</span><span class="value">${reservation.payDate}</span></div>
-            <div class="detail-row"><span class="label">วิธีชำระเงิน:</span><span class="value">${paymentMethod}</span></div>
-            ${paymentMethod === 'เงินสด' ? `
-              <div class="detail-row"><span class="label">จำนวนเงินที่รับ:</span><span class="value">${received} บาท</span></div>
-              <div class="detail-row"><span class="label">เงินทอน:</span><span class="value">${changeVal} บาท</span></div>
-            ` : ''}
+            <div class="cusData-right">
+              <table>
+                <tr>
+                  <td><strong>เลขที่ / No. :</strong> ${reservation.receiptNumber || '-'}</td>
+                </tr>
+                <tr>
+                  <td><strong>วันที่ / Date :</strong> ${(() => {
+                    if (!receiptDate) return '-';
+                    const match = String(receiptDate).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                    if (match) {
+                      const day = match[1];
+                      const month = match[2];
+                      const year = (parseInt(match[3], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    const iso = String(receiptDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (iso) {
+                      const day = iso[3];
+                      const month = iso[2];
+                      const year = (parseInt(iso[1], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    if (receiptDate instanceof Date) {
+                      const day = receiptDate.getDate().toString().padStart(2, '0');
+                      const month = (receiptDate.getMonth() + 1).toString().padStart(2, '0');
+                      const year = (receiptDate.getFullYear() + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    return String(receiptDate);
+                  })()}</td>
+                </tr>
+              </table>
+            </div>
           </div>
-            
-          <div class="signature-container">
+          <table>
+            <tr>
+              <th class="center" style="width:12%;">ลำดับที่<br>Item</th>
+              <th class="center" style="width:36%;">รายการ<br>Descriptions</th>
+              <th class="center" style="width:12%;">จำนวน<br>Quantity</th>
+              <th class="center" style="width:20%;">ราคาต่อหน่วย<br>Unit price</th>
+              <th class="center" style="width:20%;">จำนวนเงิน<br>Amount</th>
+            </tr>
+            <tr style="height: 100px; align-items: top;">
+              <td class="center" style="vertical-align: top;">1</td>
+              <td class="left" style="vertical-align: top;">Tennis ${(() => {
+                if (reservation && reservation.startTime && reservation.endTime) {
+                  const [startH, startM] = reservation.startTime.split(":").map(Number);
+                  const [endH, endM] = reservation.endTime.split(":").map(Number);
+                  let hours = endH + endM/60 - (startH + startM/60);
+                  // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                  return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                }
+                return "- ชั่วโมง";
+              })()}</td>
+              <td class="center" style="vertical-align: top;">1</td>
+              <td class="right" style="vertical-align: top;">${Number(price).toFixed(2) || '-'}</td>
+              <td class="right" style="vertical-align: top;">${Number(price).toFixed(2) || '-'}</td>
+            </tr>
+          </table>
+          <table class="amount-table">
+            <tr>
+              <td class="no-border" style="width:12%;"><strong>ตัวอักษร</strong></td>
+              <td class="no-border" style="width:32%; "><strong>${(() => {
+                // ฟังก์ชันแปลงตัวเลขเป็นข้อความไทยบาทถ้วน
+                function thaiBahtText(num) {
+                  if (!num || isNaN(num)) return '';
+                  const thNum = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+                  const thDigit = ['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
+                  let s = '';
+                  let n = Math.floor(Number(num));
+                  let str = n.toString();
+                  let len = str.length;
+                  for (let i = 0; i < len; i++) {
+                    let digit = len - i - 1;
+                    let numChar = parseInt(str[i]);
+                    if (numChar !== 0) {
+                      if (digit === 1 && numChar === 1) s += 'สิบ';
+                      else if (digit === 1 && numChar === 2) s += 'ยี่สิบ';
+                      else if (digit === 1) s += thNum[numChar] + 'สิบ';
+                      else if (digit === 0 && numChar === 1 && len > 1) s += 'เอ็ด';
+                      else s += thNum[numChar] + thDigit[digit];
+                    }
+                  }
+                  return `(${s}บาทถ้วน)`;
+                }
+                return thaiBahtText(price);
+              })()}</strong></td>
+              <td class="no-border" style="width:36%; text-align: center; background-color: #dfdfdf;"><strong>ราคาสุทธิ (รวมภาษีมูลค่าเพิ่ม)</strong></td>
+              <td style="width:20%; border-bottom: 4px double red; text-align: right"><strong>${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toFixed(2) : '-') }</strong></td>
+            </tr>
+          </table>
+          <div class="signature">
+            <div>
+              <table>
+                <tr>
+                  <td class="no-border left" style="padding-top: 20px;">
+                    <strong>ชำระโดย</strong>&nbsp; 
+                    <input type="checkbox" ${paymentMethod === 'เงินสด' ? 'checked' : ''} disabled>เงินสด 
+                    <input type="checkbox" ${paymentMethod === 'โอนผ่านธนาคาร' ? 'checked' : ''} disabled> เงินโอน &nbsp; 
+                    <input type="checkbox" ${paymentMethod === 'เครดิตการ์ด' ? 'checked' : ''} disabled> เครดิตการ์ด 
+                  </td>
+                </tr>
+              </table>
+            </div>
             <div class="signature-block">
-              <p>ลงชื่อ....................................</p>
+              <p>ลงชื่อ  ___________________________</p>
               <p>(ผู้รับเงิน)</p>
             </div>
-            
-            <div class="signature-block">
-              <p>ลงชื่อ....................................</p>
-              <p>(ลูกค้า)</p>
-            </div>
+          </div>
+          <div class="note" style="font-size: 12pt;">
+            <u>เงื่อนไขการจอง</u>&nbsp;
+            : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
           </div>
         </div>
         <script>
@@ -601,6 +754,7 @@ const AuditBooking = () => {
     printWindow.document.close();
   };
 
+  
   // ฟังก์ชันชำระเงิน
   const openPaymentModal = (price, bookingData) => {
     setPaymentAmount(price);
@@ -617,6 +771,7 @@ const AuditBooking = () => {
     localStorage.setItem('startTime', bookingData.startTime);
     localStorage.setItem('endTime', bookingData.endTime);
   };
+
   const closePaymentModal = () => {
     setPaymentModalOpen(false);
     localStorage.removeItem('paymentAmount');
@@ -628,27 +783,6 @@ const AuditBooking = () => {
     localStorage.removeItem('endTime');
   };
 
-    // ยืนยันการชำระเงิน
-  const generateReceiptNumber = (lastReceiptNumber) => {
-    // หาเลขใบเสร็จล่าสุดของปีนี้
-    const now = new Date();
-    const buddhistYear = now.getFullYear() + 543;
-    const yearShort = String(buddhistYear).slice(-2);
-
-    // ดึงลำดับล่าสุดจาก lastReceiptNumber (ถ้ามี)
-    let seq = 1;
-    if (lastReceiptNumber) {
-      // ตัวอย่าง lastReceiptNumber: TN680001
-      const match = lastReceiptNumber.match(/^TN(\d{2})(\d{4})$/);
-      if (match && match[1] === yearShort) {
-        seq = parseInt(match[2], 10) + 1;
-      }
-    }
-    // ลำดับ 4 หลัก เติม 0 ข้างหน้า
-    const seqStr = seq.toString().padStart(4, '0');
-    return `TN${yearShort}${seqStr}`;
-  };
-
   // ในฟังก์ชัน handleConfirmPayment
   const handleConfirmPayment = async () => {
     if (!selectedEvent) return;
@@ -657,6 +791,7 @@ const AuditBooking = () => {
       alert('รายการนี้ได้ชำระเงินและออกใบเสร็จแล้ว ไม่สามารถชำระซ้ำได้');
       return;
     }
+
     let method = paymentType;
     let received = null;
     let changeVal = null;
@@ -670,39 +805,17 @@ const AuditBooking = () => {
     }
 
     try {
-      // ดึงเลขใบเสร็จล่าสุดของปีนี้จากฐานข้อมูล
-      let lastReceiptNumber = null;
-      // คุณสามารถเพิ่มฟังก์ชัน getLastReceiptNumber() เพื่อดึงเลขล่าสุดจาก server (เช่น REST API)
-      // หรือ filter จาก events ใน client ถ้า events มี receiptNumber ทั้งหมด
-      if (events && events.length > 0) {
-        const now = new Date();
-        const buddhistYear = now.getFullYear() + 543;
-        const yearShort = String(buddhistYear).slice(-2);
-        // filter เฉพาะใบเสร็จปีนี้
-        const yearReceipts = events
-          .map(ev => ev.receiptNumber)
-          .filter(rn => rn && rn.startsWith(`TN${yearShort}`));
-        // เอาลำดับสูงสุด
-        if (yearReceipts.length > 0) {
-          lastReceiptNumber = yearReceipts.sort().slice(-1)[0];
-        }
-      }
-
-      let receiptNumber = null;
-      if (method !== 'ยังไม่ชำระเงิน') {
-        receiptNumber = generateReceiptNumber(lastReceiptNumber);
-      }
-
-      await updateReservations(selectedEvent.reservID, {
-        ...selectedEvent,
+      // ส่งข้อมูลไป backend เพื่อชำระเงินและสร้างเลขใบเสร็จใน transaction เดียว
+      const res = await payReservation(selectedEvent.reservID, {
         paymentMethod: method,
-        receiptNumber,
-        receiptDate: new Date(),
         received,
         changeVal,
         username: user.name,
-        payDate: moment().format('DD/MM/YYYY HH:mm')
+        price: paymentAmount
       });
+
+      // ข้อมูล reservation ที่ชำระล่าสุด
+      const updated = res.data.reserv;
 
       setReceiptData({
         ...selectedEvent,
@@ -710,19 +823,22 @@ const AuditBooking = () => {
         price: paymentAmount,
         received,
         changeVal,
-        receiptNumber,
-        payDate: moment().format('DD/MM/YYYY HH:mm'), 
+        receiptNumber: updated.receiptNumber,
+        receiptDate: updated.receiptDate,
+        payDate: updated.payDate,
       });
 
       setIsReceiptModalOpen(true);
       setPaymentModalOpen(false);
 
-      const res = await getReservations();
-      setEvents(mapReservationsToEvents(res.data));
+      // อัปเดตข้อมูล events หลังบันทึก
+      const res2 = await getReservations();
+      setEvents(mapReservationsToEvents(res2.data));
     } catch (err) {
       alert('บันทึกข้อมูลการชำระเงินล้มเหลว');
     }
   };
+
 
   const buttonStyle = {
     padding: '6px 18px',
@@ -776,6 +892,18 @@ const AuditBooking = () => {
       alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
     }
   };
+    const handleProtectedNavigate = () => {
+    const correctCode = "audit@022170808";
+  
+    if (reprintCode === correctCode) {
+      window.open('/reprintReceipt', '_blank');  // เปิดแท็บใหม่
+      setIsAuditOpen(false);  // ปิด modal ให้ถูกตัวด้วยนะครับ
+      setReprintCode("");
+    } else {
+      alert("รหัสยืนยันไม่ถูกต้อง");
+    }
+  };
+
   // ฟังก์ชันเช็คว่าเป็นวันก่อนหน้าหรือวานนี้ไหม
   const isPastOrYesterday = (dateString) => {
     if (!dateString) return true;
@@ -843,46 +971,40 @@ const AuditBooking = () => {
         >
         {/* Buttons */}
         <button
-          onClick={() => navigate("/auditMember")}
+          onClick={() => navigate("/member")}
           style={buttonStyle}
         >
           เพิ่มสมาชิก
           </button>
           <button
-            onClick={() => navigate("/auditSaleReport")}
+            onClick={() => navigate("/saleReport")}
             style={buttonStyle}
           >
             รายงานยอดขาย
           </button>
-          <button
-            onClick={() => navigate("/register")}
-            style={buttonStyle}
-          >
-            เพิ่มผู้ใช้งาน
-          </button>
-            <div style={{
-              marginTop: 'auto', // ดัน logout ไปชิดล่างสุด
-              display: 'flex',
-            }}>
-              <button
-                onClick={handleLogout}
-                style={{
-                  padding: '6px 18px',
-                  fontSize: '18px',
-                  color: '#fff',
-                  backgroundColor: '#c62828',
-                  border: 'none',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s ease',
-                  userSelect: 'none',
-                  height: '40px',
-                  fontFamily: '"Noto Sans Thai", sans-serif',
-                }}
-              >
-                Logout
-              </button>
-            </div>
+          <div style={{
+            marginTop: 'auto', // ดัน logout ไปชิดล่างสุด
+            display: 'flex',
+          }}>
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: '6px 18px',
+                fontSize: '18px',
+                color: '#fff',
+                backgroundColor: '#c62828',
+                border: 'none',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease',
+                userSelect: 'none',
+                height: '40px',
+                fontFamily: '"Noto Sans Thai", sans-serif',
+              }}
+            >
+              Logout
+            </button>
+          </div>
           {/* Search */}
             <input
               type="text"
@@ -902,6 +1024,7 @@ const AuditBooking = () => {
               }}
               onFocus={() => setShowSearchList(matchingEvents.length > 0)}
             />
+            
         </div>
       </div>
       <div style={{ display:'flex', flexDirection:'row' }}>
@@ -939,7 +1062,6 @@ const AuditBooking = () => {
             className='calendar'
             ref={calendarRef}
             localizer={calendarLocalizer}
-            culture='th-TH'
             formats={formats}
             min={new Date(1970, 1, 1, 7, 0)}    // เริ่มต้นที่ 07:00
             max={new Date(1970, 1, 1, 22, 0)}   // สิ้นสุดที่ 22:00
@@ -994,7 +1116,6 @@ const AuditBooking = () => {
                 }
               }
             }}
-            
             onSelectSlot={(slotInfo) => setSelectedDate(slotInfo.start)}
             onSelectEvent={async (event) => {
               setSelectedDate(event.start);
@@ -1091,6 +1212,44 @@ const AuditBooking = () => {
                 </Button>
             </div>
           )}
+          <Modal open={isAuditOpen} onClose={() => setIsAuditOpen(false)}>
+            <Box sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              bgcolor: 'background.paper',
+              p: 4,
+              borderRadius: 2,
+              boxShadow: 24,
+              width: 400
+            }}>
+              <h2>Audit</h2>
+              <p>กรุณากรอกรหัสยืนยัน:</p>
+              <input
+                type="password"
+                value={reprintCode}
+                onChange={(e) => setReprintCode(e.target.value)} // แก้ตรงนี้ ให้ set state ตัวถูกต้อง
+                style={{ width: '100%', padding: '10px', fontSize: '16px' }}
+                autoFocus
+              />
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                <Button variant="outlined" onClick={() => {
+                  setIsAuditOpen(false);
+                  setReprintCode('');
+                }}>
+                  ยกเลิก
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleProtectedNavigate}
+                >
+                  ยืนยัน
+                </Button>
+              </Box>
+            </Box>
+          </Modal>
           <Modal open={isReprintOpen} onClose={() => setIsReprintOpen(false)}>
             <Box sx={{
               position: 'absolute',
@@ -1120,7 +1279,6 @@ const AuditBooking = () => {
                 >
                   ยืนยัน
                 </Button>
-                
               </Box>
             </Box>
           </Modal>
@@ -1288,7 +1446,7 @@ const AuditBooking = () => {
                     </>
                   )}
                   <Button sx={{ mt: 2 }} variant="contained" onClick={() => {
-                    printReceipt(receiptData, receiptData.paymentMethod, receiptData.price, receiptData.received, receiptData.changeVal);
+                    printReceipt(receiptData, receiptData.paymentMethod, receiptData.price, receiptData.received, receiptData.changeVal, receiptData.receiptDate);
                     setIsReceiptModalOpen(false);
                   }}>พิมพ์ใบเสร็จ (A5)</Button>
                 </div>

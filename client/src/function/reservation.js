@@ -17,3 +17,6 @@ export const deleteReservations = async (id) =>
 
 export const listCancelReservation = async ()=>
     await axios.get(process.env.REACT_APP_API + '/cancelReserv');
+
+export const payReservation = async (id, data) =>
+  await axios.post(`${process.env.REACT_APP_API}/reservation/${id}/pay`, data);

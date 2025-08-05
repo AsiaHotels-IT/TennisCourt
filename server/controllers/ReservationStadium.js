@@ -25,10 +25,41 @@ exports.list = async (req, res)=>{
 
 exports.create = async (req, res) => {
   try {
-    var data = req.body;
-    console.log(data);
-    const thisReserv = await new ReservationStadium(data).save();
-    res.send(thisReserv)
+    const data = req.body;
+
+    // ตรวจสอบสมาชิก
+    if (data.memberID) {
+      const member = await Member.findOne({ memberID: data.memberID });
+      if (!member) {
+        return res.status(400).json({ message: 'ไม่พบรหัสสมาชิกนี้ในระบบ' });
+      }
+    }
+    if (!isFullHourDuration(data.startTime, data.endTime)) {
+      return res.status(400).json({ message: 'กรุณาจองเป็นชั่วโมงเต็ม เช่น 10:00 - 11:00, 14:00 - 16:00' });
+    }
+
+    // หา reservation ที่วันที่เดียวกัน
+    const existingReservations = await ReservationStadium.find({ reservDate: data.reservDate, status: { $ne: 'ยกเลิก' } });
+
+    // ตรวจสอบเวลาซ้อนกัน
+    for (const reserv of existingReservations) {
+      if (isTimeOverlap(data.startTime, data.endTime, reserv.startTime, reserv.endTime)) {
+        return res.status(400).json({ message: 'เวลาจองซ้อนกับการจองอื่นแล้ว' });
+      }
+    }
+
+    // สร้างการจองใหม่
+    const reserv = await new ReservationStadium(data).save();
+
+    if (data.memberID) {
+      const member = await Member.findOne({ memberID: data.memberID });
+      if (member) {
+        member.reservationBefore.push(reserv._id);
+        await member.save();
+      }
+    }
+
+    res.send(reserv);
 
   } catch (err) {
     console.log(err);
@@ -186,3 +217,51 @@ function calculateHours(startTime, endTime) {
   const hours = (end - start) / (1000 * 60 * 60); // คำนวณชั่วโมง
   return hours;
 }
+
+exports.payAndCreateReceipt = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { paymentMethod, received, changeVal, username, price } = req.body;
+
+    // ตรวจสอบว่าการจองนี้มีเลขใบเสร็จหรือยัง
+    const reserv = await ReservationStadium.findOne({ reservID: id });
+    if (!reserv) return res.status(404).json({ message: 'ไม่พบข้อมูลการจอง' });
+    if (reserv.receiptNumber) {
+      return res.status(400).json({ message: 'ชำระเงินและออกใบเสร็จแล้ว' });
+    }
+
+    // สร้างเลขใบเสร็จใหม่ (TN + ปีพ.ศ. 2 หลัก + ลำดับ 4 หลัก)
+    const now = new Date();
+    const buddhistYear = now.getFullYear() + 543;
+    const yearShort = String(buddhistYear).slice(-2);
+
+    // หาลำดับสูงสุดของปีนี้
+    const lastReceipt = await ReservationStadium.findOne({
+      receiptNumber: new RegExp(`^TN${yearShort}\\d{4}$`)
+    }).sort({ receiptNumber: -1 });
+
+    let seq = 1;
+    if (lastReceipt && lastReceipt.receiptNumber) {
+      seq = parseInt(String(lastReceipt.receiptNumber).slice(4), 10) + 1; // ตัด TN68 เหลือ 0001
+    }
+    const seqStr = seq.toString().padStart(4, '0');
+    const receiptNumber = `TN${yearShort}${seqStr}`;
+
+    // บันทึกข้อมูลการชำระเงินและเลขใบเสร็จ
+    reserv.paymentMethod = paymentMethod;
+    reserv.received = received;
+    reserv.changeVal = changeVal;
+    reserv.username = username;
+    reserv.price = price;
+    reserv.payDate = now.toLocaleString("th-TH", { hour12: false });
+    reserv.receiptDate = now;
+    reserv.receiptNumber = receiptNumber;
+
+    await reserv.save();
+
+    res.json({ message: 'ชำระเงินสำเร็จ', reserv });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการชำระเงิน' });
+  }
+};

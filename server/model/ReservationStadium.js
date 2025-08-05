@@ -40,7 +40,7 @@ const ReservationStadiumSchema = mongoose.Schema({
     },
     paymentMethod: {
       type: String,
-      enum: ['ยังไม่ชำระเงิน','เงินสด', 'โอนผ่านธนาคาร'],
+      enum: ['ยังไม่ชำระเงิน','เงินสด', 'โอนผ่านธนาคาร', 'เครดิตการ์ด'],
       default: 'ยังไม่ชำระเงิน'
     },
     payDate:{
