@@ -207,195 +207,165 @@ const Booking = () => {
   };
 
   const printReservationFormContent = ({ cusName, cusTel, selectedDate, startTime, endTime, price, reservID, memID, paymentMethod, reffPerson, createAt }) => {
-    const printWindow = window.open('', '', 'width=800,height=600');
-    printWindow.document.write(`
-    <html>
-      <head>
-        <title>ใบจองสนามเทนนิส</title>
-        <style>
-          @media print {
-            @page {
-              size: A5 portrait;
-              margin: 0;
+      const printWindow = window.open('', '', 'width=800,height=600');
+      printWindow.document.write(`
+      <html>
+        <head>
+          <title>ใบจองสนามเทนนิส</title>
+          <style>
+            @media print {
+              @page {
+                size: A5 portrait;
+                margin: 0;
+              }
             }
-          }
-          body {
-            font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
-            font-size: 16pt;
-            color: #000;
-            margin: 0;
-            padding: 0;
-            background: #fff;
-          }
-          .container {
-            width: 100%;
-            max-width: 800px;
-            margin: auto;
-            padding: 10px;
-            box-sizing: border-box;
-          }
-          .header {
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            flex-direction: row;
-            margin-bottom: 10px;
-          }
-          .companyAddress{
-            margin-top: 10px;
-          }
-          .header img {
-            height: 110px;
-            width: auto;
-          }
-          .company {
-            font-size: 18pt;
-            font-weight: bold;
-          }
-          .address {
-            font-size: 13pt;
-          }
-          .title {
-            text-align: center;
-            font-size: 20pt;
-            font-weight: bold;
-            margin: 10px 0 10px 0;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-          }
-          th, td {
-            border: 1px solid #000;
-            padding: 6px 8px;
-            font-size: 14pt;
-            text-align: left;
-          }
-          th {
-            background: #f2f2f2;
-            font-weight: bold;
-          }
-          .no-border {
-            border: none !important;
-          }
-          .right {
-            text-align: right;
-          }
-          .center {
-            text-align: center;
-          }
-          .signature {
-            margin-top: 30px;
-            display: flex;
-            justify-content: space-between;
-          }
-          .signature-block {
-            text-align: center;
-            width: 40%;
-            font-size: 14pt;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div><img src="${logo}" alt="Logo"></div>
-            <div class="companyAddress">
-              <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
-              <span class="address">296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400<br>
-              เลขประจำตัวผู้เสียภาษี 0107535000346 โทร 02-2170808 ต่อ 5340</span>
-            </div>  
-          </div>
-          <div class="title">ใบจองสนามเทนนิส</div>
-          <table>
-            <tr>
-              <td>ชื่อผู้จอง: ${cusName}</td>
-              <td>หมายเลขสมาชิก: ${memID}</td>
-              <td>หมายเลขการจอง: ${reservID}</td>
-            </tr>
-            <tr>
-              <td>วันที่จอง: ${selectedDate}</td>
-              <td>เวลา: ${startTime} - ${endTime}</td>
-              <td>วันที่ออกเอกสาร: ${(() => {
-                if (!createAt) return '-';
-                const match = String(createAt).match(/(\d{2})\/(\d{2})\/(\d{4})/);
-                if (match) {
-                  const day = match[1];
-                  const month = match[2];
-                  const year = (parseInt(match[3], 10) + 543).toString();
-                  return `${day}/${month}/${year}`;
-                }
-                const iso = String(createAt).match(/(\d{4})-(\d{2})-(\d{2})/);
-                if (iso) {
-                  const day = iso[3];
-                  const month = iso[2];
-                  const year = (parseInt(iso[1], 10) + 543).toString();
-                  return `${day}/${month}/${year}`;
-                }
-                if (createAt instanceof Date) {
-                  const day = createAt.getDate().toString().padStart(2, '0');
-                  const month = (createAt.getMonth() + 1).toString().padStart(2, '0');
-                  const year = (createAt.getFullYear() + 543).toString();
-                  return `${day}/${month}/${year}`;
-                }
-                return String(createAt);
-              })()}</td>
-            </tr>
-            <tr>
-              <td>เบอร์โทร: ${cusTel}</td>
-              <td>สถานะชำระเงิน: ${paymentMethod}</td>
-              <td>บุคคลอ้างอิง: ${reffPerson}</td>
-            </tr>
-          </table>
-          <table>
-            <tr>
-              <th class="center">ลำดับที่<br>Item</th>
-              <th class="center">รายการ<br>Descriptions</th>
-              <th class="center">จำนวน<br>Quantity</th>
-              <th class="center">ราคาต่อหน่วย<br>Unit price</th>
-              <th class="center">จำนวนเงิน<br>Amount</th>
-            </tr>
-            <tr>
-              <td class="center">1</td>
-              <td class="center">Tennis 1 ชั่วโมง</td>
-              <td class="center">1</td>
-              <td class="right">${price || '-'}</td>
-              <td class="right">${price || '-'}</td>
-            </tr>
-          </table>
-          <table>
-            <tr>
-              <td class="no-border">ตัวเลือกการชำระเงิน:</td>
-              <td class="no-border center">เงินสด <input type="checkbox" ${paymentMethod === 'เงินสด' ? 'checked' : ''} disabled> &nbsp; โอนผ่านธนาคาร <input type="checkbox" ${paymentMethod === 'โอนผ่านธนาคาร' ? 'checked' : ''} disabled></td>
-              <td class="no-border right">ราคาสุทธิ (รวมภาษีมูลค่าเพิ่ม): <b>${price || '-'} บาท</b></td>
-            </tr>
-          </table>
-          <div class="signature">
-            <div class="signature-block">
-              <p>ลงชื่อ....................................</p>
-              <p>(พนักงาน)</p>
+  
+            body {
+              font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
+              font-size: 16pt;
+              color: #000;
+              margin: 0;
+              padding: 0;
+              background: #fff;
+            }
+  
+            .container {
+              width: 100%;
+              max-width: 480px;
+              margin: auto;
+              padding: 10px;
+              box-sizing: border-box;
+            }
+  
+            .header {
+              text-align: center;
+              margin-bottom: 20px;
+            }
+  
+            .header img {
+              height: 80px;
+              width: auto;
+              margin-bottom: 10px;
+            }
+  
+            .header h2 {
+              margin: 0;
+              font-size: 18pt;
+            }
+  
+            .header p {
+              margin: 0;
+              font-size: 14pt;
+            }
+  
+            .contact-info {
+              margin-top: 5px;
+              font-size: 14pt;
+            }
+  
+            .title {
+              text-align: center;
+              font-size: 18pt;
+              font-weight: bold;
+              margin: 10px 0 0 0;
+            }
+  
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              font-size: 14pt;
+            }
+  
+            .reservation-details {
+              border: 1px solid #000;
+              border-radius: 10px;
+              padding: 10px 20px;
+              background-color: #fff;
+            }
+  
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            }
+  
+            .label {
+              font-weight: bold;
+              color: #000;
+            }
+  
+            .value {
+              color: #000;
+            }
+  
+            .signature-container {
+              display: flex;
+              justify-content: flex-end;
+              align-items: flex-end;
+            }
+  
+            .signature-block {
+              text-align: center;
+              font-size: 14pt;
+              margin-left: auto;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <img src="${logo}" alt="Logo">    
+              <h2>บริษัท เอเชียโฮเต็ล จำกัด (มหาชน)</h2>
+              <p>296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400</p>  
+              <div class="contact-info">
+                <p><strong>โทรศัพท์:</strong> 02-217-0808 ต่อ 5340 &nbsp; <strong>เลขประจำตัวผู้เสียภาษีอากร :</strong> 0107535000346</p>
+              </div>       
             </div>
-            <div class="signature-block">
-              <p>ลงชื่อ....................................</p>
-              <p>(ลูกค้า)</p>
+  
+            <div class="title">ใบจองสนามเทนนิส</div>
+  
+            <div class="info-row">
+              <p><strong>หมายเลขการจอง:</strong> 00${reservID}</p>
+              <p><strong>วันที่:</strong> ${createAt}</p>
+            </div>
+  
+            <div class="reservation-details">
+              <div class="detail-row"><span class="label">หมายเลขสมาชิก:</span><span class="value">${memID}</span></div>
+              <div class="detail-row"><span class="label">ชื่อผู้จอง:</span><span class="value">${cusName}</span></div>
+              <div class="detail-row"><span class="label">เบอร์โทร:</span><span class="value">${cusTel || '-'}</span></div>
+              <div class="detail-row"><span class="label">วันที่จอง:</span><span class="value">${selectedDate}</span></div>
+              <div class="detail-row"><span class="label">เวลา:</span><span class="value">${startTime} - ${endTime}</span></div>
+              <div class="detail-row"><span class="label">รวมชั่วโมงการจอง:</span><span class="value">
+                ${(() => {
+                  if (startTime && endTime) {
+                    const [startH, startM] = startTime.split(":").map(Number);
+                    const [endH, endM] = endTime.split(":").map(Number);
+                    let hours = endH + endM/60 - (startH + startM/60);
+                    // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                    return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                  }
+                  return "- ชั่วโมง";
+                })()}</span>
+              </div>
+              <div class="detail-row"><span class="label">ราคาทั้งหมด:</span><span class="value">${price || '-'} บาท</span></div>
+              <div class="detail-row"><span class="label">สถานะชำระเงิน:</span><span class="value">${paymentMethod}</span></div>
+              <div class="detail-row"><span class="label">บุคคลอ้างอิง:</span><span class="value">${reffPerson}</span></div>
+            </div>
+  
+            <div class="signature-container">
+              <div class="signature-block">
+                <p>ลงชื่อ _______________________</p>
+                <p>(พนักงาน)</p>            
             </div>
           </div>
-        </div>
-        <script>
-          window.onload = function () {
-            window.print();
-            window.onafterprint = function() {
-              window.close();
-            };
-          }
-        </script>
-      </body>
-    </html>
-    `);
-    printWindow.document.close();
-  };
-
+          <script>
+            // แสดงหน้าเว็บใหม่โดยไม่สั่ง print และไม่ปิด window
+          </script>
+        </body>
+      </html>
+      `);
+      printWindow.document.close();
+    };
   const handleEventDrop = ({ event, start, end, allDay }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

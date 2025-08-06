@@ -4,15 +4,35 @@ import "./AuditSaleReport.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from "react-router-dom";
+import { printSaleReportA4 } from './printSaleReportA4';
+
+// สำหรับ format วันที่ไทยแบบ 7/31/2568
+function formatDateThaiShort(dateStr) {
+  if (!dateStr) return "";
+  // รองรับทั้งแบบ DD/MM/YYYY และ YYYY-MM-DD
+  let date;
+  if (dateStr.includes('/')) {
+    const [day, month, year] = dateStr.split("/");
+    date = new Date(year, month - 1, day);
+  } else if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split("-");
+    date = new Date(year, month - 1, day);
+  } else {
+    date = new Date(dateStr);
+  }
+  if (isNaN(date)) return dateStr;
+  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear() + 543}`;
+}
 
 const AuditSaleReport = () => {
   const [reservation, setReservation] = useState([]);
   const [cancelReservation, setCancelReservation] = useState([]);
   const [selectedData, setSelectedData] = useState([]);
   const [selectedType, setSelectedType] = useState("booking");
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(""); // <<-- เพิ่ม state สำหรับค้นหา
+  // กำหนดค่าเริ่มต้นเป็นวันนี้
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [searchTerm, setSearchTerm] = useState(""); // สำหรับค้นหา
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || 'null');
 
@@ -29,6 +49,7 @@ const AuditSaleReport = () => {
 
   const parseDate = (dateStr) => {
     try {
+      if (!dateStr) return null;
       if (dateStr.includes('/')) {
         const [day, month, year] = dateStr.split("/");
         return new Date(year, month - 1, day);
@@ -59,73 +80,234 @@ const AuditSaleReport = () => {
     return data.filter((item) => {
       const date = parseDate(item.reservDate);
       if (!date) return false;
-
-      if (startDate && date < startDate) return false;
-      if (endDate && date > endDate) return false;
-
+      if (selectedDate) {
+        // เปรียบเทียบแค่วัน เดือน ปี
+        return (
+          date.getDate() === selectedDate.getDate() &&
+          date.getMonth() === selectedDate.getMonth() &&
+          date.getFullYear() === selectedDate.getFullYear()
+        );
+      }
       return true;
     });
-  }, [startDate, endDate]);
+  }, [selectedDate]);
 
   const filteredReservation = sortByReservDateDesc(filterData(reservation));
   const filteredCancelReservation = sortByReservDateDesc(filterData(cancelReservation));
 
+  // --- สำหรับรายงาน A4 ---
+  // 1. สรุปยอดเงินแต่ละวิธี
+  const cashItems = filteredReservation.filter(item => item.paymentMethod === "เงินสด");
+  const transferItems = filteredReservation.filter(item => item.paymentMethod === "โอนผ่านธนาคาร");
+  const cardItems = filteredReservation.filter(item => item.paymentMethod === "เครดิตการ์ด");
+  const totalCash = cashItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  const totalTransfer = transferItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  const totalCard = cardItems.reduce((sum, item) => sum + (item.price || 0), 0);
+
+  // 2. จำนวน booking, cancel, รวมยอด
   const totalBookingCount = filteredReservation.length;
   const totalCancelCount = filteredCancelReservation.length;
-
-  const totalBookingAmount = filteredReservation.reduce(
-    (sum, item) => sum + item.amount,
-    0
-  );
-
-  const totalCancelAmount = filteredCancelReservation.reduce(
-    (sum, item) => sum + item.amount,
-    0
-  );
-
+  const totalBookingAmount = filteredReservation.reduce((sum, item) => sum + (item.price || 0), 0);
+  const totalCancelAmount = filteredCancelReservation.reduce((sum, item) => sum + (item.price || 0), 0);
   const netSales = totalBookingAmount;
 
-  const handleCardClick = (type) => {
-    setSelectedType(type);
-    if (type === "booking") {
-      setSelectedData(filteredReservation);
-    } else if (type === "cancel") {
-      setSelectedData(filteredCancelReservation);
-    }
-  };
+  // 3. เตรียมแถวแสดงในตาราง (แสดงเฉพาะจำนวนข้อมูลจริง)
+  const reportRows = filteredReservation.map((item, i) => ({
+    idx: i + 1,
+    reservDate: formatDateThaiShort(item.reservDate),
+    receiptNumber: item.receiptNumber || "",
+    cusName: item.cusName,
+    cusTel: item.cusTel,
+    reservID: item.reservID || "",
+    bookDate: item.bookDate ? formatDateThaiShort(item.bookDate) : "",
+    time: `${item.startTime || ""}-${item.endTime || ""}`,
+    hour: item.hour || "",
+    price: item.price ? item.price.toLocaleString() : "",
+    cash: item.paymentMethod === "เงินสด" ? (item.price ? item.price.toLocaleString() : "") : "",
+    transfer: item.paymentMethod === "โอนผ่านธนาคาร" ? (item.price ? item.price.toLocaleString() : "") : "",
+    card: item.paymentMethod === "เครดิตการ์ด" ? (item.price ? item.price.toLocaleString() : "") : ""
+  }));
 
-  // อัพเดท selectedData เมื่อวันที่หรือประเภทเปลี่ยน
-  useEffect(() => {
-    if (selectedType === "booking") {
-      setSelectedData(filteredReservation);
-    } else if (selectedType === "cancel") {
-      setSelectedData(filteredCancelReservation);
-    }
-  }, [startDate, endDate, selectedType, filteredReservation, filteredCancelReservation]);
+  // 4. เตรียมสรุปเงินสดย่อย (แบงค์/เหรียญ)
+  const [cashSummaryRows, setCashSummaryRows] = useState([
+    { denom: 1000, qty: '', total: '' },
+    { denom: 500, qty: '', total: '' },
+    { denom: 100, qty: '', total: '' },
+    { denom: 50, qty: '', total: '' },
+    { denom: 20, qty: '', total: '' },
+    { denom: 10, qty: '', total: '' },
+  ]);
 
-  // ฟังก์ชันกรองข้อมูลด้วย search
-  const filteredSearchData = selectedData.filter(item =>
-    item.cusName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.cusTel.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleCashQtyChange = (i, value) => {
+  const qty = value.replace(/[^0-9]/g, '');
+  setCashSummaryRows(rows => {
+    const newRows = [...rows];
+    const denom = Number(newRows[i].denom);
+    newRows[i].qty = qty;
+    newRows[i].total = qty ? (denom * Number(qty)).toLocaleString() : '';
+    return newRows;
+  });
+};
+const cashTotalSum = cashSummaryRows.reduce(
+  (sum, row) => sum + (Number(row.denom) * Number(row.qty || 0)), 0
+);
+  // --- END สำหรับรายงาน A4 ---
+
+  // ฟังก์ชันแสดงผลแบบ A4
+  const renderA4Report = () => (
+    <div className="a4-report" style={{ width: "100vw", minHeight: "100vh", background: "#fff", color: "#000", margin: 0, padding: '32px 2vw 32px 2vw', boxSizing: 'border-box' }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 style={{ fontWeight: 700 }}>รายงานการขายเทนนิส ประจำวันที่</h2>
+        <span style={{ fontSize: 18 }}>{filteredReservation[0] ? formatDateThaiShort(filteredReservation[0].reservDate) : "-"}</span>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: 12 }}>
+          <span>7.00-18.00 &nbsp;&nbsp;&nbsp;&nbsp; 450/ชม.</span>
+          <span style={{background: "#dcedc8"}}>18.00-22.00 &nbsp;&nbsp; 600/ชม.</span>
+        </div>
+      </div>
+      
+      <table style={{ width: "100%", maxWidth: '100vw', borderCollapse: "collapse", marginBottom: 12, fontSize: 16 }}>
+        <thead>
+          <tr style={{ background: "#f3f3f3", borderBottom: "2px solid #555" }}>
+            <th style={{ border: "1px solid #555" }}>ลำดับ</th>
+            <th style={{ border: "1px solid #555" }}>วันที่ใบเสร็จ</th>
+            <th style={{ border: "1px solid #555" }}>เลขที่ใบเสร็จ</th>
+            <th style={{ border: "1px solid #555" }}>ชื่อลูกค้า</th>
+            <th style={{ border: "1px solid #555" }}>เบอร์โทร</th>
+            <th style={{ border: "1px solid #555" }}>เลขใบจอง</th>
+            <th style={{ border: "1px solid #555" }}>วันที่จอง</th>
+            <th style={{ border: "1px solid #555" }}>เวลาจอง</th>
+            <th style={{ border: "1px solid #555" }}>ชั่วโมงจอง</th>
+            <th style={{ border: "1px solid #555" }}>จำนวนเงิน</th>
+            <th style={{ border: "1px solid #555" }}>เงินสด</th>
+            <th style={{ border: "1px solid #555" }}>เงินโอน</th>
+            <th style={{ border: "1px solid #555" }}>เครดิตการ์ด</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reportRows.map((row, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservDate}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptNumber}</td>
+              <td style={{ border: "1px solid #bbb" }}>{row.cusName}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.cusTel}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservID}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservDate}</td>
+              <td
+                style={{
+                  border: "1px solid #bbb",
+                  textAlign: "center",
+                  background:
+                    (() => {
+                      if (row.time && row.time.includes("-")) {
+                        const [start] = row.time.split("-");
+                        if (start && start.includes(":")) {
+                          const [h, m] = start.split(":").map(Number);
+                          if (h > 18 || (h === 18 && m > 0)) return "#dcedc8";
+                        } else if (start) {
+                          // เผื่อ start เป็นตัวเลขล้วน (เช่น 19)
+                          const h = Number(start);
+                          if (h > 18) return "#dcedc8";
+                        }
+                      }
+                      return undefined;
+                    })()
+                }}
+              >
+                {row.time && row.time !== '-' ? row.time : '-'}
+              </td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>
+                {row.hour
+                  ? `${row.hour % 1 === 0 ? row.hour : Number(row.hour).toFixed(2)} ชั่วโมง`
+                  : (() => {
+                      if (row.time && row.time.includes("-")) {
+                        const [start, end] = row.time.split("-");
+                        if (start && end) {
+                          const [startH, startM] = start.split(":").map(Number);
+                          const [endH, endM] = end.split(":").map(Number);
+                          let hours = endH + endM/60 - (startH + startM/60);
+                          return `${hours % 1 === 0 ? hours : hours.toFixed(2)}`;
+                        }
+                      }
+                      return "-";
+                    })()
+                }
+              </td>
+              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.price}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.cash}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.transfer}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.card}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr style={{ background: "#f7f5ee" }}>
+            <td colSpan={9} style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>รวมทั้งสิ้น</td>
+            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>{totalBookingAmount.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>{totalCash ? totalCash.toLocaleString(undefined, {minimumFractionDigits:2}) : ""}</td>
+            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>{totalTransfer ? totalTransfer.toLocaleString(undefined, {minimumFractionDigits:2}) : ""}</td>
+            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>{totalCard ? totalCard.toLocaleString(undefined, {minimumFractionDigits:2}) : ""}</td>
+          </tr>
+        </tfoot>
+      </table>
+      
+      {/* สรุปการนำส่งเงินสด */}
+      <div style={{flex: 1}}>
+      <div style={{ display: "flex", flexDirection: "row",justifyContent: "space-between",  width: "50%",}}>
+        <div style={{ fontWeight: "bold", marginBottom: 6 }}>สรุปการนำส่งเงินสด</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 , borderTop: "1px solid #000", borderBottom: "2px double #000" }}>
+          <span style={{ fontWeight: "bold", background: "#f7f0cd", padding: "2px 14px", borderRadius: 2 }}>{totalCash.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+        </div>
+      </div>
+      <table style={{ width: "50%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #bbb" }}>แบงค์/เหรียญ</th>
+            <th style={{ border: "1px solid #bbb" }}>จำนวน</th>
+            <th style={{ border: "1px solid #bbb" }}>รวมเป็นเงิน</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cashSummaryRows.map((row, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.denom}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>
+                <input
+                  type="number"
+                  min="0"
+                  style={{ width: 60, textAlign: "right" }}
+                  value={row.qty}
+                  onChange={e => handleCashQtyChange(i, e.target.value)}
+                />
+              </td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.total}</td>
+            </tr>
+          ))}
+          <tr>
+            <td colSpan={2} style={{ textAlign: "center", fontWeight: "bold", border: "1px solid #bbb" }}>
+              รวมเงินสดที่นำส่ง
+            </td>
+            <td style={{ border: "1px solid #bbb", background: "#f7f0cd", textAlign: "center" }}>
+              {cashTotalSum.toLocaleString()}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <div style={{flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end"}}>
+          <div style={{ marginTop: 30, marginBottom: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "50%"  }}>
+              <span>ลงชื่อผู้นำส่งเงิน</span>
+              <span>_________________________________________</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "50%",marginTop: 30,  }}>
+              <span>ลงชื่อผู้รับเงิน</span>
+              <span>_________________________________________</span>
+            </div>
+          </div>
+      </div>
+    </div>
   );
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // คำนวณข้อมูลที่จะแสดงในหน้าปัจจุบัน
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredSearchData.slice(indexOfFirstItem, indexOfLastItem);
-
-  // จำนวนหน้าทั้งหมด
-  const totalPages = Math.ceil(filteredSearchData.length / itemsPerPage);
-
-  // ฟังก์ชันเปลี่ยนหน้า
-  const goToPage = (pageNumber) => {
-    if (pageNumber < 1) pageNumber = 1;
-    else if (pageNumber > totalPages) pageNumber = totalPages;
-    setCurrentPage(pageNumber);
-  };
 
   return (
     <div className="sale-report">
@@ -143,33 +325,23 @@ const AuditSaleReport = () => {
           transition: 'background-color 0.3s ease',
           userSelect: 'none',
           height: '40px',
-          fontFamily: '"Noto Sans Thai", sans-serif',
+          fontFamily: 'Calibri, sans-serif',
         }}>กลับไปหน้าหลัก</button>
       </div>
 
-      <div className="date-filter">
-        <div>
-          <label>ตั้งแต่: </label>
-          <DatePicker
-            selected={startDate}
-            onChange={(date) => setStartDate(date)}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="เลือกวันที่เริ่มต้น"
-          />
-        </div>
-        <div>
-          <label>ถึง: </label>
-          <DatePicker
-            selected={endDate}
-            onChange={(date) => setEndDate(date)}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="เลือกวันที่สิ้นสุด"
-          />
-        </div>
-        <button onClick={() => window.print()} 
+      <div className="date-filter" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+        <label>เลือกวันที่: </label>
+        <DatePicker
+          selected={selectedDate}
+          onChange={date => setSelectedDate(date)}
+          dateFormat="dd/MM/yyyy"
+          placeholderText="เลือกวันที่ต้องการดูยอดขาย"
+          isClearable
+        />
+        <button
           style={{
             padding: '6px 18px',
-            fontSize: '18px',
+            fontSize: '16px',
             color: '#65000a',
             backgroundColor: '#d7ba80',
             border: 'none',
@@ -178,102 +350,28 @@ const AuditSaleReport = () => {
             transition: 'background-color 0.3s ease',
             userSelect: 'none',
             height: '40px',
-            fontFamily: '"Noto Sans Thai", sans-serif',
-          }}>
-          พิมพ์รายงาน
-        </button>
+            fontFamily: 'Calibri, sans-serif',
+          }}
+          onClick={() => {
+            printSaleReportA4({
+              saleDate: filteredReservation[0] ? formatDateThaiShort(filteredReservation[0].reservDate) : "-",
+              reportRows,
+              totalBookingAmount,
+              totalCash,
+              totalTransfer,
+              totalCard,
+              cashSummaryRows, // ส่งเป็น state อันนี้!
+              cashTotalSum,
+            });
+          }}
+        >พิมพ์รายงาน</button>
       </div>
 
-      <div className="summary-boxes">
-        <div className="box" onClick={() => handleCardClick("booking")}>
-          <h3>จำนวนการจองทั้งหมด</h3>
-          <p>{totalBookingCount} รายการ</p>
-        </div>
-        <div className="box" onClick={() => handleCardClick("cancel")}>
-          <h3>จำนวนที่ยกเลิก</h3>
-          <p>{totalCancelCount} รายการ</p>
-        </div>
-        <div className="box" onClick={() => handleCardClick("cash")}>
-          <h3>ชำระเงินสด</h3>
-          <p> รายการ</p>
-        </div>
-        <div className="box">
-          <h3>ยอดจองทั้งหมด</h3>
-          <p>{totalBookingAmount.toLocaleString()} บาท</p>
-        </div>
-        <div className="box">
-          <h3>ยอดที่ถูกยกเลิก</h3>
-          <p>{totalCancelAmount.toLocaleString()} บาท</p>
-        </div>
-        <div className="box box-highlight">
-          <h3>ยอดขายสุทธิ</h3>
-          <p>{netSales.toLocaleString()} บาท</p>
-        </div>
+      {/* --- ส่วนแสดงรายงานสำหรับ A4 --- */}
+      <div className="print-a4-area" style={{ margin: "18px 0" }}>
+        {renderA4Report()}
       </div>
-
-      {selectedType && (
-        <div className="print-area table-container">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px" }}>
-            <h3>รายการ{selectedType === "booking" ? "จอง" : "ยกเลิก"}
-              {startDate || endDate ? (
-                <>
-                  {" "}ช่วงวันที่:{" "}
-                  {startDate ? startDate.toLocaleDateString('th-TH') : "ไม่กำหนด"}  
-                  {" "}ถึง{" "}
-                  {endDate ? endDate.toLocaleDateString('th-TH') : "ไม่กำหนด"}
-                </>
-              ) : null}
-            </h3>
-            <input 
-              type="text" 
-              placeholder="ค้นหาชื่อหรือเบอร์โทร" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ padding: "8px", width: "300px", fontSize: "16px" }}
-            />
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>ชื่อ</th>
-                <th>เบอร์โทร</th>
-                <th>วันที่</th>
-                <th>เวลา</th>
-                <th>จำนวนเงิน</th>
-                <th>วิธีชำระเงิน</th>
-                <th>หมายเลขใบเสร็จ</th>
-                <th>วันที่ชำระ</th>
-                <th>สถานะ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentItems.map((item, idx) => (
-                <tr key={idx}>
-                  <td>{item.cusName}</td>
-                  <td>{item.cusTel}</td>
-                  <td>{item.reservDate}</td>
-                  <td>{item.startTime} - {item.endTime}</td>
-                  <td>{item.amount.toLocaleString()} บาท</td>
-                  <td>{item.paymentMethod}</td>
-                  <td>{item.receiptNumber || '-'}</td>
-                  <td>{item.payDate || '-'}</td>
-                  <td>{item.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div style={{ marginTop: "10px", display: "flex", justifyContent: "center", gap: "10px", alignItems: "center" }}>
-            <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
-              ก่อนหน้า
-            </button>
-            <span>หน้า {currentPage} / {totalPages}</span>
-            <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0}>
-              ถัดไป
-            </button>
-          </div>
-        </div>
-      )}
+      {/* --- END --- */}
     </div>
   );
 };

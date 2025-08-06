@@ -108,20 +108,20 @@ const Reservation = ({ selectedDate }) => {
       const response = await createReservations(payload);
 
       alert('จองสนามสำเร็จ');
-      printReservationForm({
-        cusName,
-        cusTel,
-        reservDate: selectedDate,
-        startTime,
-        endTime,
-        price,
-        beforeVat,
-        vat,
-        reservID: response.data.reservID,
-        memberID: response.data.memberID,
-        paymentMethod: response.data.paymentMethod,
-        refPerson: response.data.refPerson,
-      });
+      //printReservationForm({
+      //  cusName,
+      //  cusTel,
+      //  reservDate: selectedDate,
+      //  startTime,
+      //  endTime,
+      //  price,
+      //  beforeVat,
+      //  vat,
+      //  reservID: response.data.reservID,
+      //  memberID: response.data.memberID,
+      //  paymentMethod: response.data.paymentMethod,
+      //  refPerson: response.data.refPerson,
+      //});
       window.location.reload();
 
     } catch (error) {

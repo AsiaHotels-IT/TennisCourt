@@ -17,6 +17,7 @@ import AuditSaleReport from './page/audit/AuditSaleReport';
 import AuditDisplay from './page/audit/AuditDisplay';
 import AuditReprintReceipt from './page/audit/AuditReprintReceipt';
 import AuditUser from './page/audit/AuditUser'; 
+import VatReport from './page/audit/VatReport';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Route path="/auditSaleReport" element={<AuditRoute><AuditSaleReport /></AuditRoute>} />
         <Route path="/auditDisplay" element={<AuditRoute><AuditDisplay /></AuditRoute>} />
         <Route path="/auditReprintReceipt" element={<AuditRoute><AuditReprintReceipt /></AuditRoute>} />
+        <Route path="/auditVatReport" element={<AuditRoute><VatReport /></AuditRoute>} />
         <Route path="/register" element={<AuditRoute><AuditUser/></AuditRoute>}/>
 
         <Route path="/booking" element={<UserRoute><Booking /></UserRoute>} />
