@@ -1,3 +1,55 @@
+function parseNumber(val) {
+  if (val === undefined || val === null || val === "") return 0;
+  if (typeof val === "string") {
+    // Remove comma and spaces for safety
+    return Number(val.replace(/,/g, '').replace(/\s/g, ''));
+  }
+  return Number(val);
+}
+
+// ฟังก์ชัน formatDateThai (รองรับทุกรูปแบบ ISO, 'YYYY-MM-DD', 'DD/MM/YYYY', timestamp)
+function formatDateThai(dateStr, buddhist = true) {
+  if (!dateStr) return "-";
+  let date;
+  if (typeof dateStr === "string" && dateStr.includes('T')) {
+    date = new Date(dateStr);
+  } else if (typeof dateStr === "string" && dateStr.includes('/')) {
+    const [day, month, year] = dateStr.split("/");
+    date = new Date(year, month - 1, day);
+  } else if (typeof dateStr === "string" && dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split("-");
+    date = new Date(year, month - 1, day);
+  } else {
+    date = new Date(dateStr);
+  }
+  if (isNaN(date.getTime())) return dateStr;
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = (date.getFullYear() + (buddhist ? 543 : 0)).toString();
+  return `${day}/${month}/${year}`;
+}
+
+function formatDate(dateStr, buddhist = false) {
+  if (!dateStr) return "-";
+  let date;
+  if (typeof dateStr === "string" && dateStr.includes('T')) {
+    date = new Date(dateStr);
+  } else if (typeof dateStr === "string" && dateStr.includes('/')) {
+    const [day, month, year] = dateStr.split("/");
+    date = new Date(year, month - 1, day);
+  } else if (typeof dateStr === "string" && dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split("-");
+    date = new Date(year, month - 1, day);
+  } else {
+    date = new Date(dateStr);
+  }
+  if (isNaN(date.getTime())) return dateStr;
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear() ;
+  return `${day}/${month}/${year}`;
+}
+
 export function printSaleReportA4({
   saleDate,
   periodMorning = "7.00-18.00  &nbsp;&nbsp;&nbsp;&nbsp; 450/ชม.",
@@ -15,8 +67,9 @@ export function printSaleReportA4({
     { denom: '20', qty: '', total: '' },
     { denom: '10', qty: '', total: '' },
   ],
-  cashTotalSum = 0   // <--- เพิ่มตรงนี้
+  cashTotalSum = 0
 }) {
+
   const printWindow = window.open('', '', 'width=900,height=1200');
   printWindow.document.write(`
     <html>
@@ -35,7 +88,7 @@ export function printSaleReportA4({
             padding: 0;
           }
           .a4-report {
-            width: 210mm;
+            width: 250mm;
             min-height: 297mm;
             margin: auto;
             background: #fff;
@@ -69,12 +122,12 @@ export function printSaleReportA4({
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 12px;
-            font-size: 10px; /* ลดขนาดฟ้อนตาราง */
+            font-size: 10px;
           }
           th, td {
             border: 1px solid #bbb;
             padding: 5px 3px;
-            font-size: 10px; /* ลดขนาดฟ้อนใน cell */
+            font-size: 10px;
           }
           th {
             background: #f3f3f3;
@@ -91,7 +144,6 @@ export function printSaleReportA4({
           .highlight {
             background: #f7f0cd;
           }
-          /* summary cash section */
           .summary-flex {
             display: flex;
             gap: 40px;
@@ -170,7 +222,7 @@ export function printSaleReportA4({
         <div class="a4-report">
           <div class="header-row">
             <h2>รายงานการขายเทนนิส ประจำวันที่</h2>
-            <span style="font-size: 14px;">${saleDate || '-'}</span>
+            <span style="font-size: 18px;">${formatDateThai(saleDate, true)}</span>
             <div class="header-info">
               <span>${periodMorning}</span>
               <span style="background: #dcedc8;">${periodEvening}</span>
@@ -209,11 +261,10 @@ export function printSaleReportA4({
                       if (h > 18) highlight = ' style="background:#dcedc8;"';
                     }
                   }
-                
                   // คำนวณชั่วโมง
                   let hourText = '-';
                   if (row.hour) {
-                    hourText = row.hour % 1 === 0 ? row.hour : Number(row.hour).toFixed(2);
+                    hourText = row.hour % 1 === 0 ? row.hour : parseFloat(row.hour).toFixed(2);
                   } else if (row.time && row.time.includes('-')) {
                     const [start, end] = row.time.split('-');
                     if (start && end) {
@@ -233,22 +284,21 @@ export function printSaleReportA4({
                       hourText = hours % 1 === 0 ? hours : hours.toFixed(2);
                     }
                   }
-                
                   return `
                     <tr>
                       <td style="text-align: right;">${row.idx}</td>
-                      <td style="text-align: right;">${row.reservDate || ''}</td>
+                      <td style="text-align: right;">${formatDate(row.receiptDate, true)}</td>
                       <td style="text-align: right;">${row.receiptNumber || ''}</td>
                       <td>${row.cusName || ''}</td>
                       <td style="text-align: right;">${row.cusTel || ''}</td>
                       <td style="text-align: right;">${row.reservID || ''}</td>
-                      <td style="text-align: right;">${row.reservDate || ''}</td>
+                      <td style="text-align: right;">${formatDate(row.reservDate, true)}</td>
                       <td style="text-align: right;"${highlight}>${row.time && row.time !== '-' ? row.time : '-'}</td>
                       <td style="text-align: right;">${hourText}</td>
-                      <td class="amount-cell">${row.price ? Number(row.price).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
-                      <td class="amount-cell">${row.cash ? Number(row.cash).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
-                      <td class="amount-cell">${row.transfer ? Number(row.transfer).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
-                      <td class="amount-cell">${row.card ? Number(row.card).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
+                      <td class="amount-cell">${row.price ? parseNumber(row.price).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
+                      <td class="amount-cell">${row.cash ? parseNumber(row.cash).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
+                      <td class="amount-cell">${row.transfer ? parseNumber(row.transfer).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
+                      <td class="amount-cell">${row.card ? parseNumber(row.card).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
                     </tr>
                   `;
                 }).join('')
@@ -257,10 +307,10 @@ export function printSaleReportA4({
             <tfoot>
               <tr>
                 <td colspan="9" style="text-align: right; font-weight: bold; padding-right: 8px; border: 1px solid #bbb;">รวมทั้งสิ้น</td>
-                <td class="amount-cell">${Number(totalBookingAmount).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                <td class="amount-cell">${totalCash ? Number(totalCash).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
-                <td class="amount-cell">${totalTransfer ? Number(totalTransfer).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
-                <td class="amount-cell">${totalCard ? Number(totalCard).toLocaleString(undefined,{minimumFractionDigits:2}) : ""}</td>
+                <td class="amount-cell">${parseNumber(totalBookingAmount).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                <td class="amount-cell">${parseNumber(totalCash).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                <td class="amount-cell">${parseNumber(totalTransfer).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                <td class="amount-cell">${parseNumber(totalCard).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
               </tr>
             </tfoot>
           </table>
@@ -270,7 +320,7 @@ export function printSaleReportA4({
                 <div class="summary-cash-title">สรุปการนำส่งเงินสด</div>
                 <div class="summary-cash-total">
                   <span class="summary-cash-amount">
-                    ${Number(totalCash).toLocaleString(undefined, {minimumFractionDigits:2})}
+                    ${parseNumber(totalCash).toLocaleString(undefined, {minimumFractionDigits:2})}
                   </span>
                 </div>
               </div>
@@ -294,7 +344,7 @@ export function printSaleReportA4({
                   }
                   <tr>
                     <td colspan="2" class="summary-cash-table-total-label">รวมเงินสดที่นำส่ง</td>
-                    <td class="summary-cash-table-total-cell">${Number(cashTotalSum).toLocaleString()}</td>
+                    <td class="summary-cash-table-total-cell"></td>
                   </tr>
                 </tbody>
               </table>

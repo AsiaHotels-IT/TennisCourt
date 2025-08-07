@@ -270,7 +270,13 @@ const Reservation = ({ selectedDate }) => {
               <div class="detail-row"><span class="label">เวลา:</span><span class="value">${startTime} - ${endTime}</span></div>
               <div class="detail-row"><span class="label">มูลค่าก่อนภาษี:</span><span class="value">${beforeVat} บาท</span></div>
               <div class="detail-row"><span class="label">ภาษีมูลค่าเพิ่ม:</span><span class="value">${vat} บาท</span></div>
-              <div class="detail-row"><span class="label">ราคาทั้งหมด:</span><span class="value">${price} บาท</span></div>
+              <div class="detail-row"><span class="label">ราคาทั้งหมด:</span>
+                <span class="value">
+                  ${price !== undefined && price !== null && !isNaN(price)
+                    ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                    : '-'} บาท
+                </span>
+              </div>
               <div class="detail-row"><span class="label">สถานะชำระเงิน:</span><span class="value">${paymentMethod}</span></div>
               <div class="detail-row"><span class="label">บุคคลอ้างอิง:</span><span class="value">${reffPerson}</span></div>
             </div>

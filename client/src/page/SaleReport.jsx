@@ -6,12 +6,13 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from "react-router-dom";
 import { printSaleReportA4 } from '../page/audit/printSaleReportA4';
 
-// สำหรับ format วันที่ไทยแบบ 7/31/2568
+// รองรับ receiptDate เป็น ISO string ด้วย
 function formatDateThaiShort(dateStr) {
   if (!dateStr) return "";
-  // รองรับทั้งแบบ DD/MM/YYYY และ YYYY-MM-DD
   let date;
-  if (dateStr.includes('/')) {
+  if (dateStr.includes('T')) {
+    date = new Date(dateStr);
+  } else if (dateStr.includes('/')) {
     const [day, month, year] = dateStr.split("/");
     date = new Date(year, month - 1, day);
   } else if (dateStr.includes('-')) {
@@ -21,20 +22,15 @@ function formatDateThaiShort(dateStr) {
     date = new Date(dateStr);
   }
   if (isNaN(date)) return dateStr;
-  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear() + 543}`;
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() + 543}`;
 }
 
 const SaleReport = () => {
   const [reservation, setReservation] = useState([]);
   const [cancelReservation, setCancelReservation] = useState([]);
-  const [selectedData, setSelectedData] = useState([]);
-  const [selectedType, setSelectedType] = useState("booking");
-  // กำหนดค่าเริ่มต้นเป็นวันนี้
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(today);
-  const [searchTerm, setSearchTerm] = useState(""); // สำหรับค้นหา
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
 
   useEffect(() => {
     fetchData();
@@ -43,14 +39,17 @@ const SaleReport = () => {
   const fetchData = async () => {
     const res1 = await getReservations();
     const res2 = await listCancelReservation();
-    setReservation(res1.data);
-    setCancelReservation(res2.data);
+    setReservation(res1.data ?? []);
+    setCancelReservation(res2.data ?? []);
   };
 
+  // parseDate รองรับ receiptDate เป็น ISO string
   const parseDate = (dateStr) => {
     try {
       if (!dateStr) return null;
-      if (dateStr.includes('/')) {
+      if (dateStr.includes('T')) {
+        return new Date(dateStr);
+      } else if (dateStr.includes('/')) {
         const [day, month, year] = dateStr.split("/");
         return new Date(year, month - 1, day);
       } else if (dateStr.includes('-')) {
@@ -64,24 +63,29 @@ const SaleReport = () => {
     }
   };
 
-  const sortByReservDateDesc = arr => {
+  // Sort by receiptDate, then receiptNumber (จากน้อยไปมาก)
+  const sortByReceiptDateAndNumberAsc = arr => {
     return [...arr].sort((a, b) => {
-      const dateA = parseDate(a.reservDate);
-      const dateB = parseDate(b.reservDate);
-      // ถ้าไม่มีวันที่ให้ถือว่าเก่ากว่า
+      const dateA = parseDate(a.receiptDate);
+      const dateB = parseDate(b.receiptDate);
       if (!dateA && !dateB) return 0;
       if (!dateA) return 1;
       if (!dateB) return -1;
-      return dateB - dateA; // ล่าสุดอยู่บน
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB;
+      }
+      const numA = a.receiptNumber ? Number(a.receiptNumber) : 0;
+      const numB = b.receiptNumber ? Number(b.receiptNumber) : 0;
+      return numA - numB;
     });
   };
 
+  // กรองข้อมูลตาม receiptDate ที่เลือก
   const filterData = useCallback((data) => {
     return data.filter((item) => {
-      const date = parseDate(item.reservDate);
+      const date = parseDate(item.receiptDate);
       if (!date) return false;
       if (selectedDate) {
-        // เปรียบเทียบแค่วัน เดือน ปี
         return (
           date.getDate() === selectedDate.getDate() &&
           date.getMonth() === selectedDate.getMonth() &&
@@ -92,32 +96,17 @@ const SaleReport = () => {
     });
   }, [selectedDate]);
 
-  const filteredReservation = sortByReservDateDesc(filterData(reservation));
-  const filteredCancelReservation = sortByReservDateDesc(filterData(cancelReservation));
+  const filteredReservation = sortByReceiptDateAndNumberAsc(filterData(reservation));
+  const filteredCancelReservation = sortByReceiptDateAndNumberAsc(filterData(cancelReservation));
 
-  // --- สำหรับรายงาน A4 ---
-  // 1. สรุปยอดเงินแต่ละวิธี
-  const cashItems = filteredReservation.filter(item => item.paymentMethod === "เงินสด");
-  const transferItems = filteredReservation.filter(item => item.paymentMethod === "โอนผ่านธนาคาร");
-  const cardItems = filteredReservation.filter(item => item.paymentMethod === "เครดิตการ์ด");
-  const totalCash = cashItems.reduce((sum, item) => sum + (item.price || 0), 0);
-  const totalTransfer = transferItems.reduce((sum, item) => sum + (item.price || 0), 0);
-  const totalCard = cardItems.reduce((sum, item) => sum + (item.price || 0), 0);
-
-  // 2. จำนวน booking, cancel, รวมยอด
-  const totalBookingCount = filteredReservation.length;
-  const totalCancelCount = filteredCancelReservation.length;
-  const totalBookingAmount = filteredReservation.reduce((sum, item) => sum + (item.price || 0), 0);
-  const totalCancelAmount = filteredCancelReservation.reduce((sum, item) => sum + (item.price || 0), 0);
-  const netSales = totalBookingAmount;
-
-  // 3. เตรียมแถวแสดงในตาราง (แสดงเฉพาะจำนวนข้อมูลจริง)
+  // --- เตรียมข้อมูลรายงาน ---
   const reportRows = filteredReservation.map((item, i) => ({
     idx: i + 1,
-    reservDate: formatDateThaiShort(item.reservDate),
+    receiptDate: item.receiptDate ? formatDateThaiShort(item.receiptDate) : "",
     receiptNumber: item.receiptNumber || "",
     cusName: item.cusName,
     cusTel: item.cusTel,
+    reservDate: item.reservDate ? formatDateThaiShort(item.reservDate) : "",
     reservID: item.reservID || "",
     bookDate: item.bookDate ? formatDateThaiShort(item.bookDate) : "",
     time: `${item.startTime || ""}-${item.endTime || ""}`,
@@ -128,7 +117,14 @@ const SaleReport = () => {
     card: item.paymentMethod === "เครดิตการ์ด" ? (item.price ? item.price.toLocaleString() : "") : ""
   }));
 
-  // 4. เตรียมสรุปเงินสดย่อย (แบงค์/เหรียญ)
+  const cashItems = filteredReservation.filter(item => item.paymentMethod === "เงินสด");
+  const transferItems = filteredReservation.filter(item => item.paymentMethod === "โอนผ่านธนาคาร");
+  const cardItems = filteredReservation.filter(item => item.paymentMethod === "เครดิตการ์ด");
+  const totalCash = cashItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  const totalTransfer = transferItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  const totalCard = cardItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  const totalBookingAmount = filteredReservation.reduce((sum, item) => sum + (item.price || 0), 0);
+
   const [cashSummaryRows, setCashSummaryRows] = useState([
     { denom: 1000, qty: '', total: '' },
     { denom: 500, qty: '', total: '' },
@@ -137,28 +133,47 @@ const SaleReport = () => {
     { denom: 20, qty: '', total: '' },
     { denom: 10, qty: '', total: '' },
   ]);
-
   const handleCashQtyChange = (i, value) => {
-  const qty = value.replace(/[^0-9]/g, '');
-  setCashSummaryRows(rows => {
-    const newRows = [...rows];
-    const denom = Number(newRows[i].denom);
-    newRows[i].qty = qty;
-    newRows[i].total = qty ? (denom * Number(qty)).toLocaleString() : '';
-    return newRows;
-  });
-};
-const cashTotalSum = cashSummaryRows.reduce(
-  (sum, row) => sum + (Number(row.denom) * Number(row.qty || 0)), 0
-);
-  // --- END สำหรับรายงาน A4 ---
+    const qty = value.replace(/[^0-9]/g, '');
+    setCashSummaryRows(rows => {
+      const newRows = [...rows];
+      const denom = Number(newRows[i].denom);
+      newRows[i].qty = qty;
+      newRows[i].total = qty ? (denom * Number(qty)).toLocaleString() : '';
+      return newRows;
+    });
+  };
+  const cashTotalSum = cashSummaryRows.reduce(
+    (sum, row) => sum + (Number(row.denom) * Number(row.qty || 0)), 0
+  );
 
-  // ฟังก์ชันแสดงผลแบบ A4
+  // --- ส่วนแสดงรายงาน ---
   const renderA4Report = () => (
     <div className="a4-report" style={{ width: "100vw", minHeight: "100vh", background: "#fff", color: "#000", margin: 0, padding: '32px 2vw 32px 2vw', boxSizing: 'border-box' }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontWeight: 700 }}>รายงานการขายเทนนิส ประจำวันที่</h2>
-        <span style={{ fontSize: 18 }}>{filteredReservation[0] ? formatDateThaiShort(filteredReservation[0].reservDate) : "-"}</span>
+        <span style={{ fontSize: 18 }}>
+          {filteredReservation[0] && filteredReservation[0].receiptDate ? (() => {
+            const dateStr = filteredReservation[0].receiptDate;
+            let date;
+            if (dateStr.includes('T')) {
+              date = new Date(dateStr);
+            } else if (dateStr.includes('/')) {
+              const [day, month, year] = dateStr.split("/");
+              date = new Date(year, month - 1, day);
+            } else if (dateStr.includes('-')) {
+              const [year, month, day] = dateStr.split("-");
+              date = new Date(year, month - 1, day);
+            } else {
+              date = new Date(dateStr);
+            }
+            if (isNaN(date)) return dateStr;
+            const d = date.getDate().toString();
+            const m = (date.getMonth() + 1).toString();
+            const y = (date.getFullYear()+543).toString();
+            return `${d}/${m}/${y}`;
+          })() : "-"}
+        </span>
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: 12 }}>
           <span>7.00-18.00 &nbsp;&nbsp;&nbsp;&nbsp; 450/ชม.</span>
           <span style={{background: "#dcedc8"}}>18.00-22.00 &nbsp;&nbsp; 600/ชม.</span>
@@ -187,51 +202,17 @@ const cashTotalSum = cashSummaryRows.reduce(
           {reportRows.map((row, i) => (
             <tr key={i}>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservDate}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptDate || "-"}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptNumber}</td>
               <td style={{ border: "1px solid #bbb" }}>{row.cusName}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.cusTel}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservID}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservDate}</td>
-              <td
-                style={{
-                  border: "1px solid #bbb",
-                  textAlign: "center",
-                  background:
-                    (() => {
-                      if (row.time && row.time.includes("-")) {
-                        const [start] = row.time.split("-");
-                        if (start && start.includes(":")) {
-                          const [h, m] = start.split(":").map(Number);
-                          if (h > 18 || (h === 18 && m > 0)) return "#dcedc8";
-                        } else if (start) {
-                          // เผื่อ start เป็นตัวเลขล้วน (เช่น 19)
-                          const h = Number(start);
-                          if (h > 18) return "#dcedc8";
-                        }
-                      }
-                      return undefined;
-                    })()
-                }}
-              >
-                {row.time && row.time !== '-' ? row.time : '-'}
-              </td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservDate || "-"}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.time && row.time !== '-' ? row.time : '-'}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>
                 {row.hour
                   ? `${row.hour % 1 === 0 ? row.hour : Number(row.hour).toFixed(2)} ชั่วโมง`
-                  : (() => {
-                      if (row.time && row.time.includes("-")) {
-                        const [start, end] = row.time.split("-");
-                        if (start && end) {
-                          const [startH, startM] = start.split(":").map(Number);
-                          const [endH, endM] = end.split(":").map(Number);
-                          let hours = endH + endM/60 - (startH + startM/60);
-                          return `${hours % 1 === 0 ? hours : hours.toFixed(2)}`;
-                        }
-                      }
-                      return "-";
-                    })()
-                }
+                  : "-"}
               </td>
               <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.price}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.cash}</td>
@@ -250,61 +231,54 @@ const cashTotalSum = cashSummaryRows.reduce(
           </tr>
         </tfoot>
       </table>
-      
-      {/* สรุปการนำส่งเงินสด */}
+      {/* สรุปเงินสด */}
       <div style={{flex: 1}}>
-      <div style={{ display: "flex", flexDirection: "row",justifyContent: "space-between",  width: "50%",}}>
-        <div style={{ fontWeight: "bold", marginBottom: 6 }}>สรุปการนำส่งเงินสด</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 , borderTop: "1px solid #000", borderBottom: "2px double #000" }}>
-          <span style={{ fontWeight: "bold", background: "#f7f0cd", padding: "2px 14px", borderRadius: 2 }}>{totalCash.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+        <div style={{ display: "flex", flexDirection: "row",justifyContent: "space-between",  width: "50%",}}>
+          <div style={{ fontWeight: "bold", marginBottom: 6 }}>สรุปการนำส่งเงินสด</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 , borderTop: "1px solid #000", borderBottom: "2px double #000" }}>
+            <span style={{ fontWeight: "bold", background: "#f7f0cd", padding: "2px 14px", borderRadius: 2 }}>{totalCash.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+          </div>
         </div>
-      </div>
-      <table style={{ width: "50%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ border: "1px solid #bbb" }}>แบงค์/เหรียญ</th>
-            <th style={{ border: "1px solid #bbb" }}>จำนวน</th>
-            <th style={{ border: "1px solid #bbb" }}>รวมเป็นเงิน</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cashSummaryRows.map((row, i) => (
-            <tr key={i}>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.denom}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>
-                <input
-                  type="number"
-                  min="0"
-                  style={{ width: 60, textAlign: "right" }}
-                  value={row.qty}
-                  onChange={e => handleCashQtyChange(i, e.target.value)}
-                />
-              </td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.total}</td>
+        <table style={{ width: "50%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #bbb" }}>แบงค์/เหรียญ</th>
+              <th style={{ border: "1px solid #bbb" }}>จำนวน</th>
+              <th style={{ border: "1px solid #bbb" }}>รวมเป็นเงิน</th>
             </tr>
-          ))}
-          <tr>
-            <td colSpan={2} style={{ textAlign: "center", fontWeight: "bold", border: "1px solid #bbb" }}>
-              รวมเงินสดที่นำส่ง
-            </td>
-            <td style={{ border: "1px solid #bbb", background: "#f7f0cd", textAlign: "center" }}>
-              {cashTotalSum.toLocaleString()}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {cashSummaryRows.map((row, i) => (
+              <tr key={i}>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.denom}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>
+                  {row.qty}
+                </td>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.total}</td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan={2} style={{ textAlign: "center", fontWeight: "bold", border: "1px solid #bbb" }}>
+                รวมเงินสดที่นำส่ง
+              </td>
+              <td style={{ border: "1px solid #bbb", background: "#f7f0cd", textAlign: "center" }}>
+                
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <div style={{flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end"}}>
-          <div style={{ marginTop: 30, marginBottom: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "50%"  }}>
-              <span>ลงชื่อผู้นำส่งเงิน</span>
-              <span>_________________________________________</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "50%",marginTop: 30,  }}>
-              <span>ลงชื่อผู้รับเงิน</span>
-              <span>_________________________________________</span>
-            </div>
+        <div style={{ marginTop: 30, marginBottom: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "50%"  }}>
+            <span>ลงชื่อผู้นำส่งเงิน</span>
+            <span>_________________________________________</span>
           </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "50%",marginTop: 30,  }}>
+            <span>ลงชื่อผู้รับเงิน</span>
+            <span>_________________________________________</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -354,24 +328,22 @@ const cashTotalSum = cashSummaryRows.reduce(
           }}
           onClick={() => {
             printSaleReportA4({
-              saleDate: filteredReservation[0] ? formatDateThaiShort(filteredReservation[0].reservDate) : "-",
+              saleDate: filteredReservation[0] ? filteredReservation[0].receiptDate : "-",
               reportRows,
               totalBookingAmount,
               totalCash,
               totalTransfer,
               totalCard,
-              cashSummaryRows, // ส่งเป็น state อันนี้!
+              cashSummaryRows,
               cashTotalSum,
             });
           }}
         >พิมพ์รายงาน</button>
       </div>
 
-      {/* --- ส่วนแสดงรายงานสำหรับ A4 --- */}
       <div className="print-a4-area" style={{ margin: "18px 0" }}>
         {renderA4Report()}
       </div>
-      {/* --- END --- */}
     </div>
   );
 };

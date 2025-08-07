@@ -14,7 +14,7 @@ const reprintReceipt = mongoose.Schema({
     reprintAt: {
         type: Date,
         default: Date.now
-    }
+    },
 })
 
 reprintReceipt.plugin(AutoIncrement, {inc_field: "reprintReID"});

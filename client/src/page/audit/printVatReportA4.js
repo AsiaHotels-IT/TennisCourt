@@ -3,9 +3,20 @@ export function printVatReportA4({
   reportRows = [],
 }) {
   // คำนวณรวมยอด
-  const sumBeforeVat = reportRows.reduce((sum, r) => sum + Number(r.beforeVat || 0), 0);
-  const sumVat = reportRows.reduce((sum, r) => sum + Number(r.vat || 0), 0);
-  const sumTotal = reportRows.reduce((sum, r) => sum + Number(r.total || 0), 0);
+   const safeNumber = val => {
+    if (val === undefined || val === null || val === "") return 0;
+    if (typeof val === "string") {
+      const num = Number(val.replace(/,/g, ""));
+      return isNaN(num) ? 0 : num;
+    }
+    return isNaN(Number(val)) ? 0 : Number(val);
+  };
+  const sumBeforeVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.beforeVat), 0);
+  const sumVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.vat), 0);
+  const sumTotalRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.total), 0);
+  const sumBeforeVat = Number(sumBeforeVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumVat = Number(sumVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumTotal = Number(sumTotalRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 
   const printWindow = window.open('', '', 'width=900,height=1200');
   printWindow.document.write(`
@@ -191,19 +202,25 @@ export function printVatReportA4({
             </thead>
             <tbody>
               ${
-                reportRows.map(row => `
-                  <tr>
-                    <td style="text-align: right;">${row.idx}</td>
-                    <td style="text-align: right;">${row.reservDate || ''}</td>
-                    <td style="text-align: left;">${row.receiptNumber || ''}</td>
-                    <td>${row.cusName || ''}</td>
-                    <td style="text-align: right;">${''}</td>
-                    <td style="text-align: right;">${row.branch || ''}</td>
-                    <td style="text-align: right;">${row.beforeVat || ''}</td>
-                    <td style="text-align: right;">${row.vat || ''}</td>
-                    <td style="text-align: right;">${row.total || ''}</td>
-                  </tr>
-                `).join('')
+                reportRows.map(row => {
+                  const formatNum = val => {
+                    const num = Number((val || '').toString().replace(/,/g, ''));
+                    return isNaN(num) ? '0.00' : num.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+                  };
+                  return `
+                    <tr>
+                      <td style="text-align: right;">${row.idx}</td>
+                      <td style="text-align: right;">${row.reservDate || ''}</td>
+                      <td style="text-align: left;">${row.receiptNumber || ''}</td>
+                      <td>${row.cusName || ''}</td>
+                      <td style="text-align: right;">${''}</td>
+                      <td style="text-align: right;">${row.branch || ''}</td>
+                      <td style="text-align: right;">${formatNum(row.beforeVat)}</td>
+                      <td style="text-align: right;">${formatNum(row.vat)}</td>
+                      <td style="text-align: right;">${formatNum(row.total)}</td>
+                    </tr>
+                  `;
+                }).join('')
               }
             </tbody>
             <tfoot>

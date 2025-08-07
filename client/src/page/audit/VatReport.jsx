@@ -3,13 +3,13 @@ import { getReservations, listCancelReservation } from "../../function/reservati
 import "./AuditSaleReport.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { addMonths } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { printVatReportA4 } from './printVatReportA4';
 
-// สำหรับ format วันที่ไทยแบบ 7/31/2568
+// สำหรับ format วันที่ไทยแบบ วัน/เดือน/ปี+543
 function formatDateThaiShort(dateStr) {
   if (!dateStr) return "";
-  // รองรับทั้งแบบ DD/MM/YYYY และ YYYY-MM-DD
   let date;
   if (dateStr.includes('/')) {
     const [day, month, year] = dateStr.split("/");
@@ -21,7 +21,10 @@ function formatDateThaiShort(dateStr) {
     date = new Date(dateStr);
   }
   if (isNaN(date)) return dateStr;
-  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear() + 543}`;
+  const d = date.getDate().toString().padStart(2, '0');
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const y = (date.getFullYear() + 543).toString();
+  return `${d}/${m}/${y}`;
 }
 
 const VatReport = () => {
@@ -29,9 +32,9 @@ const VatReport = () => {
   const [cancelReservation, setCancelReservation] = useState([]);
   const [selectedData, setSelectedData] = useState([]);
   const [selectedType, setSelectedType] = useState("booking");
-  // กำหนดค่าเริ่มต้นเป็นวันนี้
+  // กำหนดค่าเริ่มต้นเป็นเดือนนี้
   const today = new Date();
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedMonth, setSelectedMonth] = useState(today);
   const [searchTerm, setSearchTerm] = useState(""); // สำหรับค้นหา
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -76,24 +79,32 @@ const VatReport = () => {
     });
   };
 
+  // Filter เฉพาะเดือนที่เลือก
   const filterData = useCallback((data) => {
     return data.filter((item) => {
       const date = parseDate(item.reservDate);
       if (!date) return false;
-      if (selectedDate) {
-        // เปรียบเทียบแค่วัน เดือน ปี
+      if (selectedMonth) {
         return (
-          date.getDate() === selectedDate.getDate() &&
-          date.getMonth() === selectedDate.getMonth() &&
-          date.getFullYear() === selectedDate.getFullYear()
+          date.getMonth() === selectedMonth.getMonth() &&
+          date.getFullYear() === selectedMonth.getFullYear()
         );
       }
       return true;
     });
-  }, [selectedDate]);
+  }, [selectedMonth]);
 
-  const filteredReservation = sortByReservDateDesc(filterData(reservation));
-  const filteredCancelReservation = sortByReservDateDesc(filterData(cancelReservation));
+  // เรียงเลขใบกำกับภาษีจากน้อยไปมาก
+  const sortByReceiptNumberAsc = arr => {
+    return [...arr].sort((a, b) => {
+      const numA = Number(a.receiptNumber || 0);
+      const numB = Number(b.receiptNumber || 0);
+      return numA - numB;
+    });
+  };
+
+  const filteredReservation = sortByReceiptNumberAsc(filterData(reservation));
+  const filteredCancelReservation = sortByReceiptNumberAsc(filterData(cancelReservation));
 
   // --- สำหรับรายงาน A4 ---
   // 1. สรุปยอดเงินแต่ละวิธี
@@ -124,16 +135,28 @@ const VatReport = () => {
       cusName: item.cusName,
       reservID: item.reservID || "",
       branch: item.branch || '',
-      beforeVat: beforeVat ? beforeVat.toFixed(2) : '',
-      vat: vat ? vat.toFixed(2) : '',
-      total: total ? total.toFixed(2) : '',
+      beforeVat: beforeVat ? beforeVat.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
+      vat: vat ? vat.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
+      total: total ? total.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
     };
   });
 
   // รวมยอด
-  const sumBeforeVat = reportRows.reduce((sum, r) => sum + Number(r.beforeVat || 0), 0);
-  const sumVat = reportRows.reduce((sum, r) => sum + Number(r.vat || 0), 0);
-  const sumTotal = reportRows.reduce((sum, r) => sum + Number(r.total || 0), 0);
+  // ป้องกัน NaN: แปลง string ที่มี , เป็นตัวเลข
+  const safeNumber = val => {
+    if (val === undefined || val === null || val === "") return 0;
+    if (typeof val === "string") {
+      const num = Number(val.replace(/,/g, ""));
+      return isNaN(num) ? 0 : num;
+    }
+    return isNaN(Number(val)) ? 0 : Number(val);
+  };
+  const sumBeforeVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.beforeVat), 0);
+  const sumVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.vat), 0);
+  const sumTotalRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.total), 0);
+  const sumBeforeVat = Number(sumBeforeVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumVat = Number(sumVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumTotal = Number(sumTotalRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 
   // 4. เตรียมสรุปเงินสดย่อย (แบงค์/เหรียญ)
   const [cashSummaryRows, setCashSummaryRows] = useState([
@@ -160,6 +183,12 @@ const cashTotalSum = cashSummaryRows.reduce(
 );
   // --- END สำหรับรายงาน A4 ---
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const pagedRows = reportRows.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.ceil(reportRows.length / pageSize);
+
   // ฟังก์ชันแสดงผลแบบ A4
   const renderA4Report = () => (
     <div className="a4-report" style={{ width: "100vw", minHeight: "100vh", background: "#fff", color: "#000", margin: 0, padding: '32px 2vw 32px 2vw', boxSizing: 'border-box' }}>
@@ -171,8 +200,8 @@ const cashTotalSum = cashSummaryRows.reduce(
                 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
                 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
               ];
-              return thMonths[new Date().getMonth()];
-            })()} ปี {new Date().getFullYear() + 543}</div>
+              return thMonths[selectedMonth.getMonth()];
+            })()} ปี {selectedMonth.getFullYear() + 543}</div>
         <div style={{ marginTop: 8, fontSize: 15 }}>ชื่อผู้ประกอบการ บริษัท เอเชียโฮเต็ล จำกัด (มหาชน)</div>
         <div style={{ fontSize: 15 }}>ที่อยู่สถานประกอบการ 296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพฯ 10400</div>
         <div style={{ fontSize: 15 }}>เลขประจำตัวผู้เสียภาษี 0107535000346</div>
@@ -192,7 +221,7 @@ const cashTotalSum = cashSummaryRows.reduce(
           </tr>
         </thead>
         <tbody>
-          {reportRows.map((row, i) => (
+          {pagedRows.map((row, i) => (
             <tr key={i}>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservDate}</td>
@@ -200,8 +229,16 @@ const cashTotalSum = cashSummaryRows.reduce(
               <td style={{ border: "1px solid #bbb" }}>{row.cusName}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{'-'}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.branch}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.beforeVat}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.vat}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
+                isNaN(Number(row.beforeVat.replace(/,/g, '')))
+                  ? '0.00'
+                  : Number(row.beforeVat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+              }</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
+                isNaN(Number(row.vat.replace(/,/g, '')))
+                  ? '0.00'
+                  : Number(row.vat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+              }</td>
               <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.total}</td>
             </tr>
           ))}
@@ -215,6 +252,12 @@ const cashTotalSum = cashSummaryRows.reduce(
           </tr>
         </tfoot>
       </table>
+      {/* Pagination controls */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+        <button disabled={page === 1} onClick={() => setPage(page - 1)} style={{ padding: '6px 18px', borderRadius: '20px', border: 'none', background: '#d7ba80', color: '#65000a', fontSize: 16, cursor: page === 1 ? 'not-allowed' : 'pointer' }}>ก่อนหน้า</button>
+        <span>หน้า {page} / {totalPages}</span>
+        <button disabled={page === totalPages} onClick={() => setPage(page + 1)} style={{ padding: '6px 18px', borderRadius: '20px', border: 'none', background: '#d7ba80', color: '#65000a', fontSize: 16, cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>ถัดไป</button>
+      </div>
     </div>
   );
 
@@ -239,13 +282,13 @@ const cashTotalSum = cashSummaryRows.reduce(
       </div>
 
       <div className="date-filter" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-        <label>เลือกวันที่: </label>
+        <label>เลือกเดือน: </label>
         <DatePicker
-          selected={selectedDate}
-          onChange={date => setSelectedDate(date)}
-          dateFormat="dd/MM/yyyy"
-          placeholderText="เลือกวันที่ต้องการดูยอดขาย"
-          isClearable
+          selected={selectedMonth}
+          onChange={date => { setSelectedMonth(date); setPage(1); }}
+          dateFormat="MM/yyyy"
+          showMonthYearPicker
+          placeholderText="เลือกเดือนที่ต้องการดูยอดขาย"
         />
         <button
           style={{
@@ -263,13 +306,13 @@ const cashTotalSum = cashSummaryRows.reduce(
           }}
           onClick={() => {
             printVatReportA4({
-              saleDate: filteredReservation[0] ? formatDateThaiShort(filteredReservation[0].reservDate) : "-",
+              saleDate: reportRows[0] ? reportRows[0].reservDate : "-",
               reportRows,
               totalBookingAmount,
               totalCash,
               totalTransfer,
               totalCard,
-              cashSummaryRows, // ส่งเป็น state อันนี้!
+              cashSummaryRows,
               cashTotalSum,
             });
           }}
