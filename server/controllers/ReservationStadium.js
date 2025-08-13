@@ -34,10 +34,6 @@ exports.create = async (req, res) => {
         return res.status(400).json({ message: 'ไม่พบรหัสสมาชิกนี้ในระบบ' });
       }
     }
-    if (!isFullHourDuration(data.startTime, data.endTime)) {
-      return res.status(400).json({ message: 'กรุณาจองเป็นชั่วโมงเต็ม เช่น 10:00 - 11:00, 14:00 - 16:00' });
-    }
-
     // หา reservation ที่วันที่เดียวกัน
     const existingReservations = await ReservationStadium.find({ reservDate: data.reservDate, status: { $ne: 'ยกเลิก' } });
 

@@ -23,8 +23,8 @@ function formatDateThai(dateStr, buddhist = true) {
     date = new Date(dateStr);
   }
   if (isNaN(date.getTime())) return dateStr;
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString();
+  const month = (date.getMonth() + 1).toString();
   const year = (date.getFullYear() + (buddhist ? 543 : 0)).toString();
   return `${day}/${month}/${year}`;
 }
@@ -44,8 +44,8 @@ function formatDate(dateStr, buddhist = false) {
     date = new Date(dateStr);
   }
   if (isNaN(date.getTime())) return dateStr;
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString();
+  const month = (date.getMonth() + 1).toString();
   const year = date.getFullYear() ;
   return `${day}/${month}/${year}`;
 }

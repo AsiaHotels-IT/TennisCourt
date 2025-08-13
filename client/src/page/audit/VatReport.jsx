@@ -11,7 +11,10 @@ import { printVatReportA4 } from './printVatReportA4';
 function formatDateThaiShort(dateStr) {
   if (!dateStr) return "";
   let date;
-  if (dateStr.includes('/')) {
+  // ISO datetime: 2025-08-05T05:54:29.471+00:00
+  if (dateStr.includes('T')) {
+    date = new Date(dateStr);
+  } else if (dateStr.includes('/')) {
     const [day, month, year] = dateStr.split("/");
     date = new Date(year, month - 1, day);
   } else if (dateStr.includes('-')) {
@@ -21,10 +24,26 @@ function formatDateThaiShort(dateStr) {
     date = new Date(dateStr);
   }
   if (isNaN(date)) return dateStr;
-  const d = date.getDate().toString().padStart(2, '0');
-  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const d = date.getDate().toString();
+  const m = (date.getMonth() + 1).toString();
   const y = (date.getFullYear() + 543).toString();
   return `${d}/${m}/${y}`;
+}
+
+// --- ฟังก์ชันเปรียบเทียบเลขใบกำกับภาษีให้เรียงถูกต้อง --
+// ถ้า receiptNumber มีตัวอักษร (เช่น AH0001) จะเรียงตามลำดับตัวเลขด้านหลัง
+// แต่ถ้าเป็นเลขล้วนก็เรียงปกติ
+function receiptNumberSort(a, b) {
+  const getNum = (str) => {
+    if (!str) return 0;
+    const match = str.match(/\d+$/);
+    return match ? parseInt(match[0], 10) : 0;
+  };
+  const numA = getNum(a.receiptNumber);
+  const numB = getNum(b.receiptNumber);
+  // ถ้าเลขเท่ากัน ให้เรียงตาม receiptNumber string เพื่อป้องกันกรณี AH0001 กับ BH0001
+  if (numA === numB) return (a.receiptNumber || "").localeCompare(b.receiptNumber || "");
+  return numA - numB;
 }
 
 const VatReport = () => {
@@ -67,18 +86,6 @@ const VatReport = () => {
     }
   };
 
-  const sortByReservDateDesc = arr => {
-    return [...arr].sort((a, b) => {
-      const dateA = parseDate(a.reservDate);
-      const dateB = parseDate(b.reservDate);
-      // ถ้าไม่มีวันที่ให้ถือว่าเก่ากว่า
-      if (!dateA && !dateB) return 0;
-      if (!dateA) return 1;
-      if (!dateB) return -1;
-      return dateB - dateA; // ล่าสุดอยู่บน
-    });
-  };
-
   // Filter เฉพาะเดือนที่เลือก
   const filterData = useCallback((data) => {
     return data.filter((item) => {
@@ -94,13 +101,9 @@ const VatReport = () => {
     });
   }, [selectedMonth]);
 
-  // เรียงเลขใบกำกับภาษีจากน้อยไปมาก
+  // เรียงเลขใบกำกับภาษีจากน้อยไปมาก (แบบใหม่)
   const sortByReceiptNumberAsc = arr => {
-    return [...arr].sort((a, b) => {
-      const numA = Number(a.receiptNumber || 0);
-      const numB = Number(b.receiptNumber || 0);
-      return numA - numB;
-    });
+    return [...arr].sort(receiptNumberSort);
   };
 
   const filteredReservation = sortByReceiptNumberAsc(filterData(reservation));
@@ -130,7 +133,7 @@ const VatReport = () => {
     const vat = total - beforeVat;
     return {
       idx: i + 1,
-      reservDate: formatDateThaiShort(item.reservDate),
+      receiptDate: formatDateThaiShort(item.receiptDate),
       receiptNumber: item.receiptNumber || "",
       cusName: item.cusName,
       reservID: item.reservID || "",
@@ -169,18 +172,18 @@ const VatReport = () => {
   ]);
 
   const handleCashQtyChange = (i, value) => {
-  const qty = value.replace(/[^0-9]/g, '');
-  setCashSummaryRows(rows => {
-    const newRows = [...rows];
-    const denom = Number(newRows[i].denom);
-    newRows[i].qty = qty;
-    newRows[i].total = qty ? (denom * Number(qty)).toLocaleString() : '';
-    return newRows;
-  });
-};
-const cashTotalSum = cashSummaryRows.reduce(
-  (sum, row) => sum + (Number(row.denom) * Number(row.qty || 0)), 0
-);
+    const qty = value.replace(/[^0-9]/g, '');
+    setCashSummaryRows(rows => {
+      const newRows = [...rows];
+      const denom = Number(newRows[i].denom);
+      newRows[i].qty = qty;
+      newRows[i].total = qty ? (denom * Number(qty)).toLocaleString() : '';
+      return newRows;
+    });
+  };
+  const cashTotalSum = cashSummaryRows.reduce(
+    (sum, row) => sum + (Number(row.denom) * Number(row.qty || 0)), 0
+  );
   // --- END สำหรับรายงาน A4 ---
 
   // Pagination
@@ -213,7 +216,7 @@ const cashTotalSum = cashSummaryRows.reduce(
             <th style={{ border: "1px solid #555" }}>วันที่</th>
             <th style={{ border: "1px solid #555" }}>เลขที่ใบกำกับภาษี</th>
             <th style={{ border: "1px solid #555" }}>ชื่อลูกค้า</th>
-            <th style={{ border: "1px solid #555" }}>เลขประจำตัวผู้เสีย</th>
+            <th style={{ border: "1px solid #555" }}>เลขประจำตัวผู้เสียภาษี</th>
             <th style={{ border: "1px solid #555" }}>สาขา</th>
             <th style={{ border: "1px solid #555" }}>มูลค่าก่อนภาษี</th>
             <th style={{ border: "1px solid #555" }}>ภาษีมูลค่าเพิ่ม</th>
@@ -224,7 +227,7 @@ const cashTotalSum = cashSummaryRows.reduce(
           {pagedRows.map((row, i) => (
             <tr key={i}>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.reservDate}</td>
+              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptDate}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptNumber}</td>
               <td style={{ border: "1px solid #bbb" }}>{row.cusName}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{'-'}</td>
@@ -306,7 +309,7 @@ const cashTotalSum = cashSummaryRows.reduce(
           }}
           onClick={() => {
             printVatReportA4({
-              saleDate: reportRows[0] ? reportRows[0].reservDate : "-",
+              saleDate: reportRows[0] ? reportRows[0].receiptDate : "-",
               reportRows,
               totalBookingAmount,
               totalCash,

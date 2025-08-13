@@ -459,8 +459,8 @@ const AuditBooking = () => {
             }
           }
           body {
-            font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
-            font-size: 16pt;
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 13px;
             color: #000;
             margin: 0;
             padding: 0;
@@ -483,18 +483,18 @@ const AuditBooking = () => {
             margin-top: 10px;
           }
           .company {
-            font-size: 16pt;
+            font-size: 13px;
             font-weight: bold;
           }
           .address {
-            font-size: 11pt;
+            font-size: 10px;
           }
           .title {
             background: linear-gradient(180deg, #b2c6e2 80%, #a2b6d6 100%);
             color: #000;
             border-radius: 15px;
             text-align: center;
-            font-size: 16pt;
+            font-size: 13px;
             font-weight: bold;
             padding: 18px 0 10px 0;
             border: 1px solid #7a8bb7;
@@ -516,7 +516,7 @@ const AuditBooking = () => {
             border: 1px solid #4169e1;
             border-bottom: none;
             padding: 6px 8px;
-            font-size: 14pt;
+            font-size: 11px;
             text-align: left;
           }
           th {
@@ -544,7 +544,7 @@ const AuditBooking = () => {
           .signature-block {
             text-align: center;
             width: 40%;
-            font-size: 14pt;
+            font-size: 11px;
           }
           .cusData-left {
             border: 2px solid #4169e1;
@@ -552,7 +552,7 @@ const AuditBooking = () => {
           }
           .cusData-left tr td {
             border: none;
-            font-size: 15pt;
+            font-size: 13px;
           }
           .cusData-right {
             border: 2px solid #4169e1;
@@ -560,7 +560,7 @@ const AuditBooking = () => {
           }
           .cusData-right tr td {
             border: none;
-            font-size: 15pt;
+            font-size: 13px;
           }
           .checkbox-print {
             display: inline-block;
@@ -632,6 +632,16 @@ const AuditBooking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
+                  <td class="left" style="vertical-align: top;">จำนวน ${(() => {
+                    if (reservation && reservation.startTime && reservation.endTime) {
+                      const [startH, startM] = reservation.startTime.split(":").map(Number);
+                      const [endH, endM] = reservation.endTime.split(":").map(Number);
+                      let hours = endH + endM/60 - (startH + startM/60);
+                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                    }
+                    return "- ชั่วโมง";
+                  })()}</td>
                 </tr>
               </table>
             </div>
@@ -745,12 +755,12 @@ const AuditBooking = () => {
               <p>(ผู้รับเงิน)</p>
             </div>
           </div>
-          <div class="note" style="font-size: 12pt;">
+          <div class="note" style="font-size: 10px;">
             <u>เงื่อนไขการจอง</u>&nbsp;
             : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
           </div>
         </div>
-        <div class="container" style="margin-top: 120px;">
+        <div class="container" style="margin-top: 280px;">
           <div class="header">
             <div class="companyAddress">
               <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
@@ -905,7 +915,7 @@ const AuditBooking = () => {
               <p>(ผู้รับเงิน)</p>
             </div>
           </div>
-          <div class="note" style="font-size: 12pt;">
+          <div class="note" style="font-size: 10px;">
             <u>เงื่อนไขการจอง</u>&nbsp;
             : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
           </div>
@@ -937,8 +947,8 @@ const AuditBooking = () => {
             }
           }
           body {
-            font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
-            font-size: 16pt;
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 13px;
             color: #000;
             margin: 0;
             padding: 0;
@@ -961,18 +971,18 @@ const AuditBooking = () => {
             margin-top: 10px;
           }
           .company {
-            font-size: 16pt;
+            font-size: 13px;
             font-weight: bold;
           }
           .address {
-            font-size: 11pt;
+            font-size: 11px;
           }
           .title {
             background: linear-gradient(180deg, #b2c6e2 80%, #a2b6d6 100%);
             color: #000;
             border-radius: 15px;
             text-align: center;
-            font-size: 16pt;
+            font-size: 13px;
             font-weight: bold;
             padding: 18px 0 10px 0;
             border: 1px solid #7a8bb7;
@@ -994,7 +1004,7 @@ const AuditBooking = () => {
             border: 1px solid #4169e1;
             border-bottom: none;
             padding: 6px 8px;
-            font-size: 14pt;
+            font-size: 12px;
             text-align: left;
           }
           th {
@@ -1022,7 +1032,7 @@ const AuditBooking = () => {
           .signature-block {
             text-align: center;
             width: 40%;
-            font-size: 14pt;
+            font-size: 11px;
           }
           .cusData-left {
             border: 2px solid #4169e1;
@@ -1030,7 +1040,7 @@ const AuditBooking = () => {
           }
           .cusData-left tr td {
             border: none;
-            font-size: 15pt;
+            font-size: 13px;
           }
           .cusData-right {
             border: 2px solid #4169e1;
@@ -1038,7 +1048,7 @@ const AuditBooking = () => {
           }
           .cusData-right tr td {
             border: none;
-            font-size: 15pt;
+            font-size: 14px;
           }
           .checkbox-print {
             display: inline-block;
@@ -1110,6 +1120,16 @@ const AuditBooking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน :</strong> ${(() => {
+                    if (reservation && reservation.startTime && reservation.endTime) {
+                      const [startH, startM] = reservation.startTime.split(":").map(Number);
+                      const [endH, endM] = reservation.endTime.split(":").map(Number);
+                      let hours = endH + endM/60 - (startH + startM/60);
+                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                    }
+                    return "- ชั่วโมง";
+                  })()}</td>
                 </tr>
               </table>
             </div>
@@ -1223,7 +1243,7 @@ const AuditBooking = () => {
               <p>(ผู้รับเงิน)</p>
             </div>
           </div>
-          <div class="note" style="font-size: 12pt;">
+          <div class="note" style="font-size: 10px;">
             <u>เงื่อนไขการจอง</u>&nbsp;
             : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
           </div>
@@ -1563,8 +1583,8 @@ const AuditBooking = () => {
             ref={calendarRef}
             localizer={calendarLocalizer}
             formats={formats}
-            min={new Date(1970, 1, 1, 7, 0)}    // เริ่มต้นที่ 07:00
-            max={new Date(1970, 1, 1, 22, 59)}   // สิ้นสุดที่ 22:59 เพื่อให้แสดง slot 22:00
+            min={new Date(1970, 1, 1, 0, 0)}    // เริ่มต้นที่ 07:00
+            max={new Date(1970, 1, 1, 23, 59)}   // สิ้นสุดที่ 22:59 เพื่อให้แสดง slot 22:00
             events={events}
             startAccessor="start"
             endAccessor="end"

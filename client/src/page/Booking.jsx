@@ -631,6 +631,16 @@ const Booking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน :</strong> ${(() => {
+                    if (reservation && reservation.startTime && reservation.endTime) {
+                      const [startH, startM] = reservation.startTime.split(":").map(Number);
+                      const [endH, endM] = reservation.endTime.split(":").map(Number);
+                      let hours = endH + endM/60 - (startH + startM/60);
+                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                    }
+                    return "- ชั่วโมง";
+                  })()}</td>
                 </tr>
               </table>
             </div>
@@ -791,6 +801,16 @@ const Booking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน :</strong> ${(() => {
+                    if (reservation && reservation.startTime && reservation.endTime) {
+                      const [startH, startM] = reservation.startTime.split(":").map(Number);
+                      const [endH, endM] = reservation.endTime.split(":").map(Number);
+                      let hours = endH + endM/60 - (startH + startM/60);
+                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                    }
+                    return "- ชั่วโมง";
+                  })()}</td>
                 </tr>
               </table>
             </div>
@@ -1229,8 +1249,8 @@ const Booking = () => {
             ref={calendarRef}
             localizer={calendarLocalizer}
             formats={formats}
-            min={new Date(1970, 1, 1, 7, 0)}    // เริ่มต้นที่ 07:00
-            max={new Date(1970, 1, 1, 22, 59)}   // สิ้นสุดที่ 22:00
+            min={new Date(1970, 1, 1, 0, 0)}    // เริ่มต้นที่ 00:00
+            max={new Date(1970, 1, 1, 23, 59)}   // สิ้นสุดที่ 23:59
             events={events}
             startAccessor="start"
             endAccessor="end"

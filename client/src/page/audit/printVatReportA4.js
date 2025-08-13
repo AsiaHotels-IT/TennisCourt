@@ -193,7 +193,7 @@ export function printVatReportA4({
                 <th>วันที่</th>
                 <th>เลขที่ใบกำกับภาษี</th>
                 <th>ชื่อลูกค้า</th>
-                <th>เลขประจำตัวผู้เสีย</th>
+                <th>เลขประจำตัวผู้เสียภาษี</th>
                 <th>สาขา</th>
                 <th>มูลค่าก่อนภาษี</th>
                 <th>ภาษีมูลค่าเพิ่ม</th>
@@ -210,7 +210,7 @@ export function printVatReportA4({
                   return `
                     <tr>
                       <td style="text-align: right;">${row.idx}</td>
-                      <td style="text-align: right;">${row.reservDate || ''}</td>
+                      <td style="text-align: right;">${row.receiptDate || ''}</td>
                       <td style="text-align: left;">${row.receiptNumber || ''}</td>
                       <td>${row.cusName || ''}</td>
                       <td style="text-align: right;">${''}</td>
