@@ -12,26 +12,25 @@ const calculatePrice = (start, end) => {
   const [endH, endM] = end.split(':').map(Number);
 
   let total = 0;
-  let currentH = startH;
-  let currentM = startM;
+  let currentMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
 
-  while (currentH < endH || (currentH === endH && currentM < endM)) {
-    let nextHour = currentH + 1;
-    let nextMinute = 0;
-
-    let minutes = 60;
-    if (nextHour > endH || (nextHour === endH && endM === 0)) {
-      minutes = (endH * 60 + endM) - (currentH * 60 + currentM);
-      if (minutes <= 0) break;
+  while (currentMinutes < endMinutes) {
+    if (currentMinutes >= 1080) { // หลัง 18:00
+      let nextMinutes = Math.min(currentMinutes + 60, endMinutes);
+      total += 600 * ((nextMinutes - currentMinutes) / 60);
+      currentMinutes = nextMinutes;
+    } else {
+      if (endMinutes > 1080 && currentMinutes + 60 > 1080) { // เศษก่อน 18:00
+        let before1800 = 1080 - currentMinutes;
+        total += (450 / 60) * before1800;
+        currentMinutes += before1800;
+      } else {
+        let nextMinutes = Math.min(currentMinutes + 60, endMinutes);
+        total += 450 * ((nextMinutes - currentMinutes) / 60);
+        currentMinutes = nextMinutes;
+      }
     }
-
-    if (currentH >= 7 && currentH < 18) {
-      total += (450 / 60) * minutes;
-    } else if (currentH >= 18 && currentH < 22) {
-      total += (600 / 60) * minutes;
-    }
-    currentH = nextHour;
-    currentM = nextMinute;
   }
   return Math.round(total * 100) / 100; // ทศนิยม 2 ตำแหน่ง
 };

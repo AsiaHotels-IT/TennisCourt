@@ -455,6 +455,7 @@ const Booking = () => {
             @page {
               size: A5 portrait;
               margin: 0;
+              padding: 15;
             }
           }
           body {
@@ -463,7 +464,6 @@ const Booking = () => {
             color: #000;
             margin: 0;
             padding: 0;
-            background: #fff;
           }
           .container {
             width: 100%;
@@ -942,6 +942,335 @@ const Booking = () => {
     `);
     printWindow.document.close();
   };
+
+    const printCopyOfReceipt = (reservation, paymentMethod, price, received, changeVal, receiptDate) => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write(`
+    <html>
+      <head>
+        <title>สำเนาใบเสร็จรับเงิน</title>
+        <style>
+          @media print {
+            @page {
+              size: A5 portrait;
+              margin: 0;
+              padding: 15;
+            }
+          }
+          body {
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+          }
+          .container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            padding: 10px;
+            box-sizing: border-box;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            flex-direction: row;
+            margin-bottom: 10px;
+          }
+          .companyAddress{
+            margin-top: 8px;
+          }
+          .company {
+            font-size: 12px;
+            font-weight: bold;
+          }
+          .address {
+            font-size: 9px;
+          }
+          .title {
+            background: linear-gradient(180deg, #b2c6e2 80%, #a2b6d6 100%);
+            color: #000;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 18px 0 10px 0;
+            border: 1px solid #7a8bb7;
+            width: 42%;
+            box-sizing: border-box;
+          }
+          .cusData {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            height: 120px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th, td {
+            border: 1px solid #4169e1;
+            border-bottom: none;
+            padding: 6px 8px;
+            font-size: 12px;
+            text-align: left;
+          }
+          th {
+            background: #dde6f7;
+            font-weight: bold;
+          }
+          .amount-table{
+            border: 1px solid #4169e1;
+          }
+          .no-border {
+            border: none !important;
+          }
+          .right {
+            text-align: right;
+          }
+          .center {
+            text-align: center;
+          }
+          .signature {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+          }
+          .signature-block {
+            text-align: center;
+            width: 40%;
+            font-size: 11px;
+          }
+          .cusData-left {
+            border: 2px solid #4169e1;
+            width: 60%;
+          }
+          .cusData-left tr td {
+            border: none;
+            font-size: 13px;
+          }
+          .cusData-right {
+            border: 2px solid #4169e1;
+            width: 35%;
+          }
+          .cusData-right tr td {
+            border: none;
+            font-size: 14px;
+          }
+          .checkbox-print {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #686868ff;
+            border-radius: 4px;
+            background: #686868ff;
+            position: relative;
+            vertical-align: middle;
+            margin-right: 6px;
+          }
+          .checkbox-print.checked::after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 0px;
+            width: 7px;
+            height: 14px;
+            border: solid #000000;
+            border-width: 0 3px 3px 0;
+            transform: rotate(45deg);
+          }
+          .checkbox-print.disabled {
+            opacity: 0.5;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="companyAddress">
+              <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
+              <span class="address">296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400<br>
+              เลขประจำตัวผู้เสียภาษี 0107535000346 <br/> โทร 02-2170808 ต่อ 5340</span>
+            </div>  
+            <div class="title">
+              <span>ใบเสร็จรับเงิน/ใบกำกับภาษีอย่างย่อ</span><br>
+              <span>สำเนา</span>
+            </div>  
+          </div>
+          <div class="cusData">
+            <div class="cusData-left">
+              <table>
+                <tr>
+                  <td><strong>ชื่อลูกค้า :</strong> ${reservation.cusName}</td>
+                  <td><strong>หมายเลขการจอง :</strong> ${reservation.reservID}</td>
+                </tr>
+                <tr>
+                  <td><strong>วันที่จอง :</strong> ${(() => {
+                    if (!reservation.reservDate) return '-';
+                    const match = String(reservation.reservDate).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                    if (match) {
+                      const day = match[1].padStart(2, '0');
+                      const month = match[2].padStart(2, '0');
+                      const year = (parseInt(match[3], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    const iso = String(reservation.reservDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (iso) {
+                      const day = iso[3];
+                      const month = iso[2];
+                      const year = (parseInt(iso[1], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    return String(reservation.reservDate);
+                  })()}</td>
+                  <td><strong>เวลา :</strong> ${reservation.startTime} - ${reservation.endTime}</td>
+                </tr>
+                <tr>
+                  <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน :</strong> ${(() => {
+                    if (reservation && reservation.startTime && reservation.endTime) {
+                      const [startH, startM] = reservation.startTime.split(":").map(Number);
+                      const [endH, endM] = reservation.endTime.split(":").map(Number);
+                      let hours = endH + endM/60 - (startH + startM/60);
+                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                    }
+                    return "- ชั่วโมง";
+                  })()}</td>
+                </tr>
+              </table>
+            </div>
+            <div class="cusData-right">
+              <table>
+                <tr>
+                  <td><strong>เลขที่ / No. :</strong> ${reservation.receiptNumber || '-'}</td>
+                </tr>
+                <tr>
+                  <td><strong>วันที่ / Date :</strong> ${(() => {
+                    if (!receiptDate) return '-';
+                    const match = String(receiptDate).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                    if (match) {
+                      const day = match[1];
+                      const month = match[2];
+                      const year = (parseInt(match[3], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    const iso = String(receiptDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (iso) {
+                      const day = iso[3];
+                      const month = iso[2];
+                      const year = (parseInt(iso[1], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    if (receiptDate instanceof Date) {
+                      const day = receiptDate.getDate().toString().padStart(2, '0');
+                      const month = (receiptDate.getMonth() + 1).toString().padStart(2, '0');
+                      const year = (receiptDate.getFullYear() + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    return String(receiptDate);
+                  })()}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+          <table>
+            <tr>
+              <th class="center" style="width:12%;">ลำดับที่<br>Item</th>
+              <th class="center" style="width:68%;">รายการ<br>Descriptions</th>
+              <!-- <th class="center" style="width:12%;">จำนวน<br>Quantity</th>
+              <th class="center" style="width:20%;">ราคาต่อหน่วย<br>Unit price</th> -->
+              <th class="center" style="width:20%;">จำนวนเงิน<br>Amount</th>
+            </tr>
+            <tr style="height: 100px; align-items: top;">
+              <td class="center" style="vertical-align: top;">1</td>
+              <td class="left" style="vertical-align: top;">Tennis ${(() => {
+                if (reservation && reservation.startTime && reservation.endTime) {
+                  const [startH, startM] = reservation.startTime.split(":").map(Number);
+                  const [endH, endM] = reservation.endTime.split(":").map(Number);
+                  let hours = endH + endM/60 - (startH + startM/60);
+                  // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
+                  return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                }
+                return "- ชั่วโมง";
+              })()}</td>
+             <!-- <td class="center" style="vertical-align: top;">1</td>
+              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td> -->
+              
+              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
+            </tr>
+          </table>
+          <table class="amount-table">
+            <tr>
+              <td class="no-border" style="width:14%;"><strong>ตัวอักษร</strong></td>
+              <td class="no-border" style="width:30%; "><strong>${(() => {
+                // ฟังก์ชันแปลงตัวเลขเป็นข้อความไทยบาทถ้วน
+                function thaiBahtText(num) {
+                  if (!num || isNaN(num)) return '';
+                  const thNum = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+                  const thDigit = ['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
+                  let s = '';
+                  let n = Math.floor(Number(num));
+                  let str = n.toString();
+                  let len = str.length;
+                  for (let i = 0; i < len; i++) {
+                    let digit = len - i - 1;
+                    let numChar = parseInt(str[i]);
+                    if (numChar !== 0) {
+                      if (digit === 1 && numChar === 1) s += 'สิบ';
+                      else if (digit === 1 && numChar === 2) s += 'ยี่สิบ';
+                      else if (digit === 1) s += thNum[numChar] + 'สิบ';
+                      else if (digit === 0 && numChar === 1 && len > 1) s += 'เอ็ด';
+                      else s += thNum[numChar] + thDigit[digit];
+                    }
+                  }
+                  return `(${s}บาทถ้วน)`;
+                }
+                return thaiBahtText(price);
+              })()}</strong></td>
+              <td class="no-border" style="width:36%; text-align: center; background-color: #dfdfdf;"><strong>ราคาสุทธิ (รวมภาษีมูลค่าเพิ่ม)</strong></td>
+              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
+            </tr>
+          </table>
+          <div class="signature">
+            <div>
+              <table>
+                <tr>
+                  <td class="no-border left" style="padding-top: 20px;">
+                    <strong>ชำระโดย</strong>&nbsp; 
+                    <span class="checkbox-print${paymentMethod === 'เงินสด' ? ' checked disabled' : ' disabled'}"></span>เงินสด
+                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>เงินโอน
+                    <span class="checkbox-print${paymentMethod === 'เครดิตการ์ด' ? ' checked disabled' : ' disabled'}"></span>เครดิตการ์ด
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="signature-block">
+              <p>ลงชื่อ  ___________________________</p>
+              <p>(ผู้รับเงิน)</p>
+            </div>
+          </div>
+          <div class="note" style="font-size: 10px;">
+            <u>เงื่อนไขการจอง</u>&nbsp;
+            : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
+          </div>
+        </div>
+        <script>
+          window.onload = function () {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            };
+          }
+        </script>
+      </body>
+    </html>
+    `);
+    printWindow.document.close();
+  };
   // ฟังก์ชันชำระเงิน
   const openPaymentModal = (price, bookingData) => {
     setPaymentAmount(price);
@@ -1040,43 +1369,43 @@ const Booking = () => {
   };
 
   const handleReprintReceipt = async () => {
-    if (selectedEvent.paymentMethod === 'ยังไม่ชำระเงิน') {
-      alert("ยังไม่สามารถรีปริ๊นได้ เนื่องจากยังไม่ชำระเงิน");
-      setReprintPassword("");
-      window.location.reload();
-      return;
-    }
-
-    try {
-      const res = await checkPassword({
-        username: user.username, // หรือ user.name ตาม DB
-        password: reprintPassword
-      });
-      if (!res.data.success) {
-        alert("รหัสผ่านไม่ถูกต้อง");
+      if (selectedEvent.paymentMethod === 'ยังไม่ชำระเงิน') {
+        alert("ยังไม่สามารถรีปริ๊นได้ เนื่องจากยังไม่ชำระเงิน");
+        setReprintPassword("");
+        window.location.reload();
         return;
       }
-      // ถ้ารหัสผ่านถูกต้อง
-      printReceipt(
-        selectedEvent,
-        selectedEvent.paymentMethod,
-        selectedEvent.price || 0,
-        selectedEvent.received || 0,
-        selectedEvent.changeVal || 0,
-        selectedEvent.receiptDate
-      );
-      setIsReprintOpen(false);
-      setReprintPassword("");
-      await reprintReceipt({
-        reservID: selectedEvent.reservID,
-        receiptNumber: selectedEvent.receiptNumber,
-        printedAt: new Date(),
-        username: user.name,
-      });
-    } catch (err) {
-      alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
-    }
-  };
+  
+      try {
+        const res = await checkPassword({
+          username: user.username, // หรือ user.name ตาม DB
+          password: reprintPassword
+        });
+        if (!res.data.success) {
+          alert("รหัสผ่านไม่ถูกต้อง");
+          return;
+        }
+        // ถ้ารหัสผ่านถูกต้อง
+        printCopyOfReceipt(
+          selectedEvent,
+          selectedEvent.paymentMethod,
+          selectedEvent.price || 0,
+          selectedEvent.received || 0,
+          selectedEvent.changeVal || 0,
+          selectedEvent.receiptDate
+        );
+        setIsReprintOpen(false);
+        setReprintPassword("");
+        await reprintReceipt({
+          reservID: selectedEvent.reservID,
+          receiptNumber: selectedEvent.receiptNumber,
+          printedAt: new Date(),
+          username: user.name,
+        });
+      } catch (err) {
+        alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      }
+    };
 
   const handleProtectedNavigate = () => {
     const correctCode = "audit@022170808";
@@ -1378,7 +1707,24 @@ const Booking = () => {
                   </Button>
                 </>
               )}
-              
+              <Button
+                  onClick={() => setIsReprintOpen(true)}  // เปิด Modal
+                  style={{
+                  padding: '6px 18px',
+                  fontSize: '18px',
+                  color: '#65000a',
+                  backgroundColor: '#d7ba80',
+                  border: 'none',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease',
+                  userSelect: 'none',
+                  height: '40px',
+                  fontFamily: '"Noto Sans Thai", sans-serif',
+                }}
+                >
+                  พิมพ์สำเนาใบเสร็จเพิ่ม
+                </Button>
             </div>
           )}
           <Modal open={isAuditOpen} onClose={() => setIsAuditOpen(false)}>

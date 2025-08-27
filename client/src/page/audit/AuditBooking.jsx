@@ -456,6 +456,7 @@ const AuditBooking = () => {
             @page {
               size: A5 portrait;
               margin: 0;
+              padding: 0;
             }
           }
           body {
@@ -464,7 +465,6 @@ const AuditBooking = () => {
             color: #000;
             margin: 0;
             padding: 0;
-            background: #fff;
           }
           .container {
             width: 100%;
@@ -944,6 +944,7 @@ const AuditBooking = () => {
             @page {
               size: A5 portrait;
               margin: 0;
+              padding: 15px;
             }
           }
           body {
@@ -971,7 +972,7 @@ const AuditBooking = () => {
             margin-top: 10px;
           }
           .company {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
           }
           .address {
@@ -982,7 +983,7 @@ const AuditBooking = () => {
             color: #000;
             border-radius: 15px;
             text-align: center;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             padding: 18px 0 10px 0;
             border: 1px solid #7a8bb7;
@@ -1195,8 +1196,8 @@ const AuditBooking = () => {
           </table>
           <table class="amount-table">
             <tr>
-              <td class="no-border" style="width:12%;"><strong>ตัวอักษร</strong></td>
-              <td class="no-border" style="width:32%; "><strong>${(() => {
+              <td class="no-border" style="width:14%;"><strong>ตัวอักษร</strong></td>
+              <td class="no-border" style="width:30%; "><strong>${(() => {
                 // ฟังก์ชันแปลงตัวเลขเป็นข้อความไทยบาทถ้วน
                 function thaiBahtText(num) {
                   if (!num || isNaN(num)) return '';

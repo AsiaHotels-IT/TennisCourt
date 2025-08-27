@@ -9,6 +9,7 @@ import ReprintReceipt from './page/ReprintReceipt';
 import Login from './page/auth/Login';
 import UserRoute from './Routes/UserRoute';
 import AuditRoute from './Routes/AuditRoute';
+import CalendarForCus from './page/CalendarForCus';
 //For Audit
 import AuditBooking from './page/audit/AuditBooking';
 import AuditReservation from './page/audit/AuditReservation';
@@ -24,7 +25,8 @@ function App() {
      <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        
+        <Route path="/calendar" element={<CalendarForCus />} />
+
         <Route path="/auditBooking" element={<AuditRoute><AuditBooking /></AuditRoute>} />
         <Route path="/auditMember" element={<AuditRoute><AuditMember /></AuditRoute>} />
         <Route path="/auditReservation" element={<AuditRoute><AuditReservation /></AuditRoute>} />
