@@ -123,35 +123,39 @@ exports.remove = async (req, res) => {
   try {
     const id = req.params.id;
 
-    // 1. หาเรคคอร์ดที่ต้องการลบ
+    // 1. หาเรคคอร์ดที่ต้องการเปลี่ยนสถานะ
     const reservation = await ReservationStadium.findOne({ reservID: id }).exec();
 
     if (!reservation) {
       return res.status(404).send('Reservation not found');
     }
 
-    // 2. สร้างข้อมูลใหม่ใน CancelReservation
-    const cancelData = new CancelReservation({
-      reservID: reservation.reservID,
-      memberID: reservation.memberID,
-      cusName: reservation.cusName,
-      cusTel: reservation.cusTel,
-      reservDate: reservation.reservDate,
-      startTime: reservation.startTime,
-      endTime: reservation.endTime,
-      status: 'ยกเลิก',
-      paymentMethod: reservation.paymentMethod,
-      refPerson: reservation.refPerson,
-      amount: reservation.amount,
-      username: reservation.username, 
-    });
+    // 2. ตรวจสอบว่ามีข้อมูลใน CancelReservation อยู่แล้วหรือไม่
+    const existingCancel = await CancelReservation.findOne({ reservID: reservation.reservID });
+    if (!existingCancel) {
+      const cancelData = new CancelReservation({
+        reservID: reservation.reservID,
+        memberID: reservation.memberID,
+        cusName: reservation.cusName,
+        cusTel: reservation.cusTel,
+        reservDate: reservation.reservDate,
+        startTime: reservation.startTime,
+        endTime: reservation.endTime,
+        status: 'ยกเลิก',
+        paymentMethod: reservation.paymentMethod,
+        refPerson: reservation.refPerson,
+        amount: reservation.amount,
+        username: reservation.username, 
+      });
 
-    await cancelData.save();
+      await cancelData.save();
+    }
 
-    // 3. ลบข้อมูลจาก ReservationStadium
-    await ReservationStadium.findOneAndDelete({ reservID: id }).exec();
+    // 3. เปลี่ยนสถานะของ ReservationStadium เป็น "ยกเลิก"
+    reservation.status = 'ยกเลิก';
+    await reservation.save();
 
-    res.send({ message: 'Reservation canceled and moved to cancel table' });
+    res.send({ message: 'Reservation status updated to canceled and moved to cancel table' });
   } catch (err) {
     console.log(err);
     res.status(500).send('Cannot cancel reservation');

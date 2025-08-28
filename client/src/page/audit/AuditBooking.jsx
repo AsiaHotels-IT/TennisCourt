@@ -21,19 +21,21 @@ moment.updateLocale('th', { week: { dow: 1 } });
 const DragAndDropCalendar = withDragAndDrop(Calendar);
 
 const mapReservationsToEvents = (reservations) => {
-  return reservations.map(resv => {
-    const [day, month, year] = resv.reservDate.split('/');
-    const startDateTime = new Date(year, month - 1, day, ...resv.startTime.split(':'));
-    const endDateTime = new Date(year, month - 1, day, ...resv.endTime.split(':'));
+  return reservations
+    .filter(resv => resv.status !== 'ยกเลิก') // กรองสถานะ "ยกเลิก" ออก
+    .map(resv => {
+      const [day, month, year] = resv.reservDate.split('/');
+      const startDateTime = new Date(year, month - 1, day, ...resv.startTime.split(':'));
+      const endDateTime = new Date(year, month - 1, day, ...resv.endTime.split(':'));
 
-    return {
-      id: resv.reservID,
-      title: `${resv.cusName} (${resv.paymentMethod})`,
-      start: startDateTime,
-      end: endDateTime,
-      paymentMethod: resv.paymentMethod
-    };
-  });
+      return {
+        id: resv.reservID,
+        title: `${resv.cusName} (${resv.paymentMethod})`,
+        start: startDateTime,
+        end: endDateTime,
+        paymentMethod: resv.paymentMethod
+      };
+    });
 };
 
 const formats = {
@@ -1121,7 +1123,7 @@ const AuditBooking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
-                  <td class="left" style="vertical-align: top;"><strong>จำนวน :</strong> ${(() => {
+                  <td class="left" style="vertical-align: top;">จำนวน ${(() => {
                     if (reservation && reservation.startTime && reservation.endTime) {
                       const [startH, startM] = reservation.startTime.split(":").map(Number);
                       const [endH, endM] = reservation.endTime.split(":").map(Number);
@@ -1196,8 +1198,8 @@ const AuditBooking = () => {
           </table>
           <table class="amount-table">
             <tr>
-              <td class="no-border" style="width:14%;"><strong>ตัวอักษร</strong></td>
-              <td class="no-border" style="width:30%; "><strong>${(() => {
+              <td class="no-border" style="width:12%;"><strong>ตัวอักษร</strong></td>
+              <td class="no-border" style="width:32%; "><strong>${(() => {
                 // ฟังก์ชันแปลงตัวเลขเป็นข้อความไทยบาทถ้วน
                 function thaiBahtText(num) {
                   if (!num || isNaN(num)) return '';
@@ -1771,7 +1773,7 @@ const AuditBooking = () => {
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={handleProtectedNavigate}
+                                   onClick={handleProtectedNavigate}
                 >
                   ยืนยัน
                 </Button>

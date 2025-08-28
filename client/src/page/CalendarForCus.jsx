@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/th';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-import { getReservations, getReservationById } from '../function/reservation';
+import { getReservations } from '../function/reservation';
 import { Modal, Box, Button, Typography } from '@mui/material';
 
 const localizer = momentLocalizer(moment);
@@ -17,7 +17,6 @@ const mapReservationsToEvents = (reservations) => {
     const [day, month, year] = resv.reservDate.split('/');
     const startDateTime = new Date(year, month - 1, day, ...resv.startTime.split(':'));
     const endDateTime = new Date(year, month - 1, day, ...resv.endTime.split(':'));
-
     return {
       id: resv.reservID,
       title: `${moment(startDateTime).format('HH:mm')} - ${moment(endDateTime).format('HH:mm')}`,
@@ -30,11 +29,11 @@ const mapReservationsToEvents = (reservations) => {
 
 const formats = {
   timeGutterFormat: 'HH:mm',
-  eventTimeRangeFormat: ({ start, end }, culture, local) =>
+  eventTimeRangeFormat: ({ start, end }) =>
     `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`,
-  dayHeaderFormat: (date, culture, localizer) =>
+  dayHeaderFormat: (date) =>
       moment(date).format('ddddที่ D MMMM YYYY'),
-  dayRangeHeaderFormat: ({ start, end }, culture, localizer) =>
+  dayRangeHeaderFormat: ({ start, end }) =>
     ` ${moment(start).format('D MMMM YYYY')} - ${moment(end).format('D MMMM YYYY')}`,
 };
 
@@ -68,39 +67,59 @@ const CalendarForCus = () => {
     setIsModalOpen(true);
   };
 
-  // Detect mobile device (screen width <= 480)
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 480;
+  // Detect mobile device (screen <= 480px)
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth <= 480 : false;
+  const isTablet = typeof window !== 'undefined' ? window.innerWidth > 480 && window.innerWidth <= 768 : false;
 
   if (loading) {
     return <div>กำลังโหลดข้อมูล...</div>;
   }
 
   return (
-    <div className='booking-container' style={{ padding: '10px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '18px' }}>
-              <h1 style={{ textAlign: 'left', fontSize: '2rem', color: '#65000a' }}>ตารางจองสนามเทนนิส</h1>            
-            {/* ตารางราคาหัวตาราง */}
-            <Box sx={{
-              mb: 1.5,
-              borderRadius: 2,
-              background: '#fffbe7',
-              border: '1px solid #e0c080',
-              padding: { xs: '12px 10px', sm: '14px 20px' },
-              maxWidth: 560,
-              margin: '0 0 0 auto',
-              fontSize: { xs: '0.95em', sm: '1.05em' }
-            }}>
-              <Typography sx={{ color: '#65000a', fontWeight: 700, mb: 0.4 }}>
-                อัตราค่าบริการจองคอร์ท
-              </Typography>
-              <Typography>
-                <span style={{ color:'#344', fontWeight:500 }}>07.00-18.00</span> ชั่วโมงละ <b style={{ color:'#267a25' }}>450 บาท</b>
-              </Typography>
-              <Typography>
-                <span style={{ color:'#344', fontWeight:500 }}>18.00-22.00</span> ชั่วโมงละ <b style={{ color:'#c62828' }}>600 บาท</b>
-              </Typography>
-            </Box>
+    <div className='booking-container' style={{
+      padding: isMobile ? '4px' : isTablet ? '8px' : '16px',
+      minHeight: '100vh',
+      background: isMobile ? '#fffbe7' : '#fff',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isMobile ? '8px' : '18px'
+      }}>
+        <div style={{
+          display: isMobile ? 'block' : 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: isMobile ? '10px' : '18px'
+        }}>
+          <h1 style={{
+            textAlign: isMobile ? 'center' : 'left',
+            fontSize: isMobile ? '1.2rem' : isTablet ? '1.6rem' : '2rem',
+            color: '#65000a',
+            marginBottom: isMobile ? '6px' : 0
+          }}>ตารางจองสนามเทนนิส</h1>
+          <Box sx={{
+            mb: 1.5,
+            borderRadius: 2,
+            background: '#fffbe7',
+            border: '1px solid #e0c080',
+            padding: { xs: '12px 10px', sm: '14px 20px' },
+            maxWidth: 560,
+            margin: isMobile ? '0 auto' : '0 0 0 auto',
+            fontSize: { xs: '0.95em', sm: '1.05em' }
+          }}>
+            <Typography sx={{ color: '#65000a', fontWeight: 700, mb: 0.4, fontSize: isMobile ? '0.9em' : '1em' }}>
+              อัตราค่าบริการจองคอร์ท
+            </Typography>
+            <Typography sx={{ fontSize: isMobile ? '0.85em' : '1em' }}>
+              <span style={{ color:'#344', fontWeight:500 }}>07.00-18.00</span> ชั่วโมงละ <b style={{ color:'#267a25' }}>450 บาท</b>
+            </Typography>
+            <Typography sx={{ fontSize: isMobile ? '0.85em' : '1em' }}>
+              <span style={{ color:'#344', fontWeight:500 }}>18.00-22.00</span> ชั่วโมงละ <b style={{ color:'#c62828' }}>600 บาท</b>
+            </Typography>
+          </Box>
         </div>
         
         <DragAndDropCalendar
@@ -120,12 +139,12 @@ const CalendarForCus = () => {
           selectable
           onSelectSlot={handleSelectSlot}
           style={{
-            height: '85vh',
-            borderRadius: '12px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            height: isMobile ? '60vh' : isTablet ? '65vh' : '85vh',
+            borderRadius: isMobile ? '6px' : '12px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.09)',
             backgroundColor: '#fff',
             width: '100%',
-            fontSize: '15px',
+            fontSize: isMobile ? '12px' : isTablet ? '13px' : '15px',
             whiteSpace: 'pre-line'
           }}
           draggableAccessor={null}
@@ -134,7 +153,7 @@ const CalendarForCus = () => {
               backgroundColor: '#d7ba80',
               color: '#65000a',
               borderRadius: '8px',
-              padding: '2px 6px'
+              padding: isMobile ? '1px 3px' : '2px 6px'
             }
           })}
         />
@@ -154,34 +173,28 @@ const CalendarForCus = () => {
             bgcolor: 'background.paper',
             borderRadius: 3,
             boxShadow: 24,
-            p: 3,
-            minWidth: { xs: '90vw', sm: 340 },
+            p: isMobile ? 2 : 3,
+            minWidth: isMobile ? '90vw' : 340,
             maxWidth: 400,
+            fontSize: isMobile ? '0.92em' : '1.05em'
           }}>
-            <Typography id="day-bookings-modal-title" variant="h6" component="h2" sx={{ mb: 1, color: '#65000a', textAlign: 'center' }}>
+            <Typography id="day-bookings-modal-title" variant="h6" component="h2" sx={{ mb: 1, color: '#65000a', textAlign: 'center', fontSize: isMobile ? '1em' : '1.2em' }}>
               เวลาการจองทั้งหมด
             </Typography>
             {selectedEvent && selectedEvent.length > 0 ? (
-              <div style={{ fontSize: '1.1em', color: '#333' }}>
+              <div style={{ fontSize: '1.06em', color: '#333' }}>
                 {selectedEvent
                   .sort((a, b) => new Date(a.start) - new Date(b.start))
                   .map((event, index) => (
-                    <div key={index} style={{ fontSize: '0.95em', marginBottom: '8px' }}>
+                    <div key={index} style={{ fontSize: '0.98em', marginBottom: '8px' }}>
                       <div>เวลา: <b>{moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}</b></div>
-                      <div>
-                        ราคา: <b style={{
-                          color: moment(event.start).hour() < 18 ? '#267a25' : '#c62828'
-                        }}>
-                          {moment(event.start).hour() < 18 ? '450 บาท/ชั่วโมง' : '600 บาท/ชั่วโมง'}
-                        </b>
-                      </div>
                       <hr style={{ margin: '8px 0' }} />
                     </div>
                 ))}
               </div>
             ) : <div>ไม่มีการจองในวันนี้</div>}
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-              <Button onClick={() => setIsModalOpen(false)} sx={{ color: '#65000a' }}>ปิด</Button>
+              <Button onClick={() => setIsModalOpen(false)} sx={{ color: '#65000a', fontSize: isMobile ? '0.9em' : '1em' }}>ปิด</Button>
             </Box>
           </Box>
         </Modal>
@@ -210,7 +223,6 @@ const CalendarForCus = () => {
                 font-size: 1.1rem !important;
               }
             }
-                    
             @media (max-width: 480px) {
               .rbc-calendar, .rbc-month-view, .rbc-header, .rbc-date-cell, .rbc-event, .rbc-toolbar-label, .rbc-show-more {
                 font-size: 8px !important;

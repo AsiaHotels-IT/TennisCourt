@@ -35,7 +35,7 @@ const ReservationStadiumSchema = mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['จองแล้ว', 'ใช้งานแล้ว'],
+        enum: ['จองแล้ว', 'ใช้งานแล้ว', 'ยกเลิก'],
         default: 'จองแล้ว'
     },
     paymentMethod: {

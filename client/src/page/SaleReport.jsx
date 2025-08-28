@@ -83,13 +83,15 @@ const SaleReport = () => {
   // กรองข้อมูลตาม receiptDate ที่เลือก
   const filterData = useCallback((data) => {
     return data.filter((item) => {
-      const date = parseDate(item.receiptDate);
-      if (!date) return false;
+      const receiptDate = parseDate(item.receiptDate);
+
+      if (!receiptDate) return false;
+
       if (selectedDate) {
         return (
-          date.getDate() === selectedDate.getDate() &&
-          date.getMonth() === selectedDate.getMonth() &&
-          date.getFullYear() === selectedDate.getFullYear()
+          receiptDate.getDate() === selectedDate.getDate() &&
+          receiptDate.getMonth() === selectedDate.getMonth() &&
+          receiptDate.getFullYear() === selectedDate.getFullYear()
         );
       }
       return true;
@@ -200,7 +202,7 @@ const SaleReport = () => {
         </thead>
         <tbody>
           {reportRows.map((row, i) => (
-            <tr key={i}>
+            <tr key={i} style={{ backgroundColor: row.isCanceled ? "#ffe6e6" : "transparent" }}>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptDate || "-"}</td>
               <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptNumber}</td>
