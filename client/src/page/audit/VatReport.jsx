@@ -69,28 +69,29 @@ const VatReport = () => {
     setCancelReservation(res2.data);
   };
 
-  const parseDate = (dateStr) => {
-    try {
-      if (!dateStr) return null;
-      if (dateStr.includes('/')) {
-        const [day, month, year] = dateStr.split("/");
-        return new Date(year, month - 1, day);
-      } else if (dateStr.includes('-')) {
-        const [year, month, day] = dateStr.split("-");
-        return new Date(year, month - 1, day);
-      } else {
-        return new Date(dateStr);
-      }
-    } catch {
-      return null;
+   const parseReceiptDate = (dateStr) => {
+    if (!dateStr) return null;
+    // ISO datetime: 2025-08-05T05:54:29.471+00:00
+    if (dateStr.includes('T')) {
+      return new Date(dateStr);
+    } else if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split("/");
+      return new Date(year, month - 1, day);
+    } else if (dateStr.includes('-')) {
+      const [year, month, day] = dateStr.split("-");
+      return new Date(year, month - 1, day);
+    } else {
+      return new Date(dateStr);
     }
   };
 
-  // Filter เฉพาะเดือนที่เลือก
+  // Filter เฉพาะเดือนที่เลือกและมีบิลใบกำกับภาษี และไม่ใช่สถานะยกเลิก
   const filterData = useCallback((data) => {
     return data.filter((item) => {
-      const date = parseDate(item.reservDate);
-      if (!date) return false;
+      const date = parseReceiptDate(item.receiptDate);
+      const hasReceiptNumber = item.receiptNumber && item.receiptNumber.trim() !== "";
+      const notCancelled = item.status !== "ยกเลิก";
+      if (!date || !hasReceiptNumber || !notCancelled) return false;
       if (selectedMonth) {
         return (
           date.getMonth() === selectedMonth.getMonth() &&
@@ -142,7 +143,7 @@ const VatReport = () => {
       vat: vat ? vat.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
       total: total ? total.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
     };
-  });
+  }).filter(row => row.receiptNumber.trim() !== ""); // กรองเฉพาะแถวที่มีเลขใบกำกับภาษี
 
   // รวมยอด
   // ป้องกัน NaN: แปลง string ที่มี , เป็นตัวเลข
@@ -224,27 +225,31 @@ const VatReport = () => {
           </tr>
         </thead>
         <tbody>
-          {pagedRows.map((row, i) => (
-            <tr key={i}>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptDate}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptNumber}</td>
-              <td style={{ border: "1px solid #bbb" }}>{row.cusName}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{'-'}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.branch}</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
-                isNaN(Number(row.beforeVat.replace(/,/g, '')))
-                  ? '0.00'
-                  : Number(row.beforeVat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
-              }</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
-                isNaN(Number(row.vat.replace(/,/g, '')))
-                  ? '0.00'
-                  : Number(row.vat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
-              }</td>
-              <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.total}</td>
-            </tr>
-          ))}
+          {pagedRows.map((row, i) => {
+            // ตรวจสอบสถานะและกำหนดสีพื้นหลัง
+            const highlight = row.status && row.status === "ยกเลิก" ? { backgroundColor: "#f8d7da" } : {};
+            return (
+              <tr key={i} style={highlight}>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptDate}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.receiptNumber}</td>
+                <td style={{ border: "1px solid #bbb" }}>{row.cusName}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{'-'}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.branch}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
+                  isNaN(Number(row.beforeVat.replace(/,/g, '')))
+                    ? '0.00'
+                    : Number(row.beforeVat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+                }</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
+                  isNaN(Number(row.vat.replace(/,/g, '')))
+                    ? '0.00'
+                    : Number(row.vat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+                }</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.total}</td>
+              </tr>
+            );
+          })}
         </tbody>
         <tfoot>
           <tr style={{ background: "#f7f5ee" }}>

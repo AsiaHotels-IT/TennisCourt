@@ -102,6 +102,18 @@ const SaleReport = () => {
   const filteredCancelReservation = sortByReceiptDateAndNumberAsc(filterData(cancelReservation));
 
   // --- เตรียมข้อมูลรายงาน ---
+  const calculateHours = (startTime, endTime) => {
+    if (!startTime || !endTime) return 0;
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const start = new Date(0, 0, 0, startHour, startMinute);
+    const end = new Date(0, 0, 0, endHour, endMinute);
+    const diff = (end - start) / (1000 * 60 * 60); // คำนวณชั่วโมง
+    const hours = Math.floor(diff); // ชั่วโมงเต็ม
+    const minutes = Math.round((diff - hours) * 60); // นาทีที่เหลือ
+    return minutes > 0 ? `${hours}.${minutes}` : `${hours}`; // แสดงผลในรูปแบบ ชั่วโมง.นาที
+  };
+
   const reportRows = filteredReservation.map((item, i) => ({
     idx: i + 1,
     receiptDate: item.receiptDate ? formatDateThaiShort(item.receiptDate) : "",
@@ -112,7 +124,7 @@ const SaleReport = () => {
     reservID: item.reservID || "",
     bookDate: item.bookDate ? formatDateThaiShort(item.bookDate) : "",
     time: `${item.startTime || ""}-${item.endTime || ""}`,
-    hour: item.hour || "",
+    hour: calculateHours(item.startTime, item.endTime), // เพิ่มการคำนวณชั่วโมง
     price: item.price ? item.price.toLocaleString() : "",
     cash: item.paymentMethod === "เงินสด" ? (item.price ? item.price.toLocaleString() : "") : "",
     transfer: item.paymentMethod === "โอนผ่านธนาคาร" ? (item.price ? item.price.toLocaleString() : "") : "",

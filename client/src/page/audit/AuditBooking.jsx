@@ -211,6 +211,19 @@ const AuditBooking = () => {
     });
   };
 
+  function formatHourDisplay(hours) {
+  if (!isFinite(hours) || hours <= 0) return "- ชั่วโมง";
+  const full = Math.floor(hours);
+  const fraction = hours - full;
+  if (Math.abs(fraction - 0.5) < 0.01) {
+    return `${full}.30 ชั่วโมง`;
+  }
+  if (fraction === 0) {
+    return `${full} ชั่วโมง`;
+  }
+  return `${hours.toFixed(2)} ชั่วโมง`;
+}
+
   const printReservationFormContent = ({ cusName, cusTel, selectedDate, startTime, endTime, price, reservID, memID, paymentMethod, reffPerson, createAt }) => {
     const printWindow = window.open('', '', 'width=800,height=600');
     printWindow.document.write(`
@@ -346,8 +359,7 @@ const AuditBooking = () => {
                   const [startH, startM] = startTime.split(":").map(Number);
                   const [endH, endM] = endTime.split(":").map(Number);
                   let hours = endH + endM/60 - (startH + startM/60);
-                  // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                  return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                  return formatHourDisplay(hours);
                 }
                 return "- ชั่วโมง";
               })()}</span>
@@ -378,6 +390,7 @@ const AuditBooking = () => {
     printWindow.document.close();
   };
   const handleEventDrop = ({ event, start, end, allDay }) => {
+  
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -397,10 +410,9 @@ const AuditBooking = () => {
       return;
     }
 
-    // ห้ามเลื่อนไปวัน-เวลาที่ผ่านมาแล้ว
     const newStartMoment = moment(start);
     const newEndMoment = moment(end);
-      
+
     if (newStartMoment.isBefore(now) || newEndMoment.isBefore(now)) {
       alert("ไม่สามารถเลื่อนจองไปวันหรือเวลาที่ผ่านมาแล้ว");
       return;
@@ -639,8 +651,7 @@ const AuditBooking = () => {
                       const [startH, startM] = reservation.startTime.split(":").map(Number);
                       const [endH, endM] = reservation.endTime.split(":").map(Number);
                       let hours = endH + endM/60 - (startH + startM/60);
-                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                      return formatHourDisplay(hours);
                     }
                     return "- ชั่วโมง";
                   })()}</td>
@@ -696,8 +707,7 @@ const AuditBooking = () => {
                   const [startH, startM] = reservation.startTime.split(":").map(Number);
                   const [endH, endM] = reservation.endTime.split(":").map(Number);
                   let hours = endH + endM/60 - (startH + startM/60);
-                  // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                  return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                  return formatHourDisplay(hours);
                 }
                 return "- ชั่วโมง";
               })()}</td>
@@ -856,8 +866,7 @@ const AuditBooking = () => {
                   const [startH, startM] = reservation.startTime.split(":").map(Number);
                   const [endH, endM] = reservation.endTime.split(":").map(Number);
                   let hours = endH + endM/60 - (startH + startM/60);
-                  // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                  return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                  return formatHourDisplay(hours);
                 }
                 return "- ชั่วโมง";
               })()}</td>
@@ -1128,8 +1137,7 @@ const AuditBooking = () => {
                       const [startH, startM] = reservation.startTime.split(":").map(Number);
                       const [endH, endM] = reservation.endTime.split(":").map(Number);
                       let hours = endH + endM/60 - (startH + startM/60);
-                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                      return formatHourDisplay(hours);
                     }
                     return "- ชั่วโมง";
                   })()}</td>
@@ -1185,8 +1193,7 @@ const AuditBooking = () => {
                   const [startH, startM] = reservation.startTime.split(":").map(Number);
                   const [endH, endM] = reservation.endTime.split(":").map(Number);
                   let hours = endH + endM/60 - (startH + startM/60);
-                  // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                  return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                  return formatHourDisplay(hours);
                 }
                 return "- ชั่วโมง";
               })()}</td>
@@ -1680,7 +1687,7 @@ const AuditBooking = () => {
               >
                 ดูใบจอง
               </button>
-              {!isPastOrYesterday(selectedEvent.reservDate) && (
+              {!isPastOrYesterday(selectedEvent.reservDate) && selectedEvent.paymentMethod === 'ยังไม่ชำระเงิน' && (
                 <>
                   <button
                     onClick={() => setIsCancelOpen(true)}
@@ -1773,7 +1780,7 @@ const AuditBooking = () => {
                 <Button
                   variant="contained"
                   color="primary"
-                                   onClick={handleProtectedNavigate}
+                  onClick={handleProtectedNavigate}
                 >
                   ยืนยัน
                 </Button>
