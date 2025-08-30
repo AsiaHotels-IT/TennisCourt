@@ -75,10 +75,6 @@ exports.update = async (req, res) => {
       }
     }
 
-    if (!isFullHourDuration(newData.startTime, newData.endTime)) {
-      return res.status(400).json({ message: 'กรุณาจองเป็นชั่วโมงเต็ม เช่น 10:00 - 11:00, 14:00 - 16:00' });
-    }
-
     const existingReservations = await ReservationStadium.find({ 
       reservDate: newData.reservDate, 
       reservID: { $ne: id }, 

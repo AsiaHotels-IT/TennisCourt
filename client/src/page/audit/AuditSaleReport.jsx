@@ -128,13 +128,13 @@ const AuditSaleReport = () => {
       hour: calculateHours(item.startTime, item.endTime), // เพิ่มการคำนวณชั่วโมง
       price: item.price ? item.price.toLocaleString() : "",
       cash: item.paymentMethod === "เงินสด" ? (item.price ? item.price.toLocaleString() : "") : "",
-      transfer: item.paymentMethod === "โอนผ่านธนาคาร" ? (item.price ? item.price.toLocaleString() : "") : "",
-      card: item.paymentMethod === "เครดิตการ์ด" ? (item.price ? item.price.toLocaleString() : "") : ""
+      transfer: item.paymentMethod === "QR" ? (item.price ? item.price.toLocaleString() : "") : "",
+      card: item.paymentMethod === "โอนผ่านธนาคาร" ? (item.price ? item.price.toLocaleString() : "") : ""
     }));
   
     const cashItems = filteredReservation.filter(item => item.paymentMethod === "เงินสด");
-    const transferItems = filteredReservation.filter(item => item.paymentMethod === "โอนผ่านธนาคาร");
-    const cardItems = filteredReservation.filter(item => item.paymentMethod === "เครดิตการ์ด");
+    const transferItems = filteredReservation.filter(item => item.paymentMethod === "QR");
+    const cardItems = filteredReservation.filter(item => item.paymentMethod === "โอนผ่านธนาคาร");
     const totalCash = cashItems.reduce((sum, item) => sum + (item.price || 0), 0);
     const totalTransfer = transferItems.reduce((sum, item) => sum + (item.price || 0), 0);
     const totalCard = cardItems.reduce((sum, item) => sum + (item.price || 0), 0);
@@ -209,8 +209,8 @@ const AuditSaleReport = () => {
               <th style={{ border: "1px solid #555" }}>ชั่วโมงจอง</th>
               <th style={{ border: "1px solid #555" }}>จำนวนเงิน</th>
               <th style={{ border: "1px solid #555" }}>เงินสด</th>
-              <th style={{ border: "1px solid #555" }}>เงินโอน</th>
-              <th style={{ border: "1px solid #555" }}>เครดิตการ์ด</th>
+              <th style={{ border: "1px solid #555" }}>QR</th>
+              <th style={{ border: "1px solid #555" }}>โอนผ่านธนาคาร</th>
             </tr>
           </thead>
           <tbody>

@@ -59,7 +59,7 @@ const Booking = () => {
   const [draggedEvent, setDraggedEvent] = useState(null);
   const [newStart, setNewStart] = useState(null);
   const [newEnd, setNewEnd] = useState(null);
-  const [paymentType, setPaymentType] = useState('โอนผ่านธนาคาร'); // 'เงินสด' หรือ 'โอนผ่านธนาคาร'
+  const [paymentType, setPaymentType] = useState('QR'); // 'เงินสด' หรือ 'QR'
   const [cashReceived, setCashReceived] = useState('');
   const [change, setChange] = useState(0);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -463,21 +463,22 @@ const Booking = () => {
     printWindow.document.write(`
     <html>
       <head>
-        <title>ใบเสร็จรับเงิน</title>
+        <title>สำเนาใบเสร็จรับเงิน</title>
         <style>
           @media print {
             @page {
               size: A5 portrait;
               margin: 0;
-              padding: 15;
+              padding: 15px;
             }
           }
           body {
-            font-family: 'TH Sarabun New', 'Sarabun', sans-serif;
-            font-size: 16pt;
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 13px;
             color: #000;
             margin: 0;
             padding: 0;
+            background: #fff;
           }
           .container {
             width: 100%;
@@ -496,18 +497,18 @@ const Booking = () => {
             margin-top: 10px;
           }
           .company {
-            font-size: 16pt;
+            font-size: 12px;
             font-weight: bold;
           }
           .address {
-            font-size: 11pt;
+            font-size: 10px;
           }
           .title {
             background: linear-gradient(180deg, #b2c6e2 80%, #a2b6d6 100%);
             color: #000;
             border-radius: 15px;
             text-align: center;
-            font-size: 16pt;
+            font-size: 12px;
             font-weight: bold;
             padding: 18px 0 10px 0;
             border: 1px solid #7a8bb7;
@@ -529,7 +530,7 @@ const Booking = () => {
             border: 1px solid #4169e1;
             border-bottom: none;
             padding: 6px 8px;
-            font-size: 14pt;
+            font-size: 12px;
             text-align: left;
           }
           th {
@@ -557,7 +558,7 @@ const Booking = () => {
           .signature-block {
             text-align: center;
             width: 40%;
-            font-size: 14pt;
+            font-size: 11px;
           }
           .cusData-left {
             border: 2px solid #4169e1;
@@ -565,7 +566,7 @@ const Booking = () => {
           }
           .cusData-left tr td {
             border: none;
-            font-size: 15pt;
+            font-size: 13px;
           }
           .cusData-right {
             border: 2px solid #4169e1;
@@ -573,7 +574,7 @@ const Booking = () => {
           }
           .cusData-right tr td {
             border: none;
-            font-size: 15pt;
+            font-size: 14px;
           }
           .checkbox-print {
             display: inline-block;
@@ -645,7 +646,7 @@ const Booking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
-                  <td class="left" style="vertical-align: top;"><strong>จำนวน :</strong> ${(() => {
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน : </strong> ${(() => {
                     if (reservation && reservation.startTime && reservation.endTime) {
                       const [startH, startM] = reservation.startTime.split(":").map(Number);
                       const [endH, endM] = reservation.endTime.split(":").map(Number);
@@ -755,8 +756,8 @@ const Booking = () => {
                   <td class="no-border left" style="padding-top: 20px;">
                     <strong>ชำระโดย</strong>&nbsp; 
                     <span class="checkbox-print${paymentMethod === 'เงินสด' ? ' checked disabled' : ' disabled'}"></span>เงินสด
-                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>เงินโอน
-                    <span class="checkbox-print${paymentMethod === 'เครดิตการ์ด' ? ' checked disabled' : ' disabled'}"></span>เครดิตการ์ด
+                    <span class="checkbox-print${paymentMethod === 'QR' ? ' checked disabled' : ' disabled'}"></span>QR
+                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>โอนผ่านธนาคาร
                   </td>
                 </tr>
               </table>
@@ -766,12 +767,13 @@ const Booking = () => {
               <p>(ผู้รับเงิน)</p>
             </div>
           </div>
-          <div class="note" style="font-size: 12pt;">
+          <div class="note" style="font-size: 10px;">
             <u>เงื่อนไขการจอง</u>&nbsp;
             : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
           </div>
         </div>
-        <div class="container" style="margin-top: 120px;">
+        
+        <div class="container" style="margin-top: 500px;">
           <div class="header">
             <div class="companyAddress">
               <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
@@ -813,13 +815,12 @@ const Booking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
-                  <td class="left" style="vertical-align: top;"><strong>จำนวน :</strong> ${(() => {
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน : </strong> ${(() => {
                     if (reservation && reservation.startTime && reservation.endTime) {
                       const [startH, startM] = reservation.startTime.split(":").map(Number);
                       const [endH, endM] = reservation.endTime.split(":").map(Number);
                       let hours = endH + endM/60 - (startH + startM/60);
-                      // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                      return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                      return formatHourDisplay(hours);
                     }
                     return "- ชั่วโมง";
                   })()}</td>
@@ -875,8 +876,7 @@ const Booking = () => {
                   const [startH, startM] = reservation.startTime.split(":").map(Number);
                   const [endH, endM] = reservation.endTime.split(":").map(Number);
                   let hours = endH + endM/60 - (startH + startM/60);
-                  // ถ้าจองเป็นจำนวนเต็ม ให้แสดงเป็นจำนวนเต็ม
-                  return `${hours % 1 === 0 ? hours : hours.toFixed(2)} ชั่วโมง`;
+                  return formatHourDisplay(hours);
                 }
                 return "- ชั่วโมง";
               })()}</td>
@@ -925,8 +925,8 @@ const Booking = () => {
                   <td class="no-border left" style="padding-top: 20px;">
                     <strong>ชำระโดย</strong>&nbsp; 
                     <span class="checkbox-print${paymentMethod === 'เงินสด' ? ' checked disabled' : ' disabled'}"></span>เงินสด
-                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>เงินโอน
-                    <span class="checkbox-print${paymentMethod === 'เครดิตการ์ด' ? ' checked disabled' : ' disabled'}"></span>เครดิตการ์ด
+                    <span class="checkbox-print${paymentMethod === 'QR' ? ' checked disabled' : ' disabled'}"></span>QR
+                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>โอนผ่านธนาคาร
                   </td>
                 </tr>
               </table>
@@ -936,7 +936,7 @@ const Booking = () => {
               <p>(ผู้รับเงิน)</p>
             </div>
           </div>
-          <div class="note" style="font-size: 12pt;">
+          <div class="note" style="font-size: 10px;">
             <u>เงื่อนไขการจอง</u>&nbsp;
             : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
           </div>
@@ -998,7 +998,7 @@ const Booking = () => {
             font-weight: bold;
           }
           .address {
-            font-size: 11px;
+            font-size: 10px;
           }
           .title {
             background: linear-gradient(180deg, #b2c6e2 80%, #a2b6d6 100%);
@@ -1143,7 +1143,7 @@ const Booking = () => {
                 </tr>
                 <tr>
                   <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
-                  <td class="left" style="vertical-align: top;">จำนวน ${(() => {
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน : </strong> ${(() => {
                     if (reservation && reservation.startTime && reservation.endTime) {
                       const [startH, startM] = reservation.startTime.split(":").map(Number);
                       const [endH, endM] = reservation.endTime.split(":").map(Number);
@@ -1253,8 +1253,8 @@ const Booking = () => {
                   <td class="no-border left" style="padding-top: 20px;">
                     <strong>ชำระโดย</strong>&nbsp; 
                     <span class="checkbox-print${paymentMethod === 'เงินสด' ? ' checked disabled' : ' disabled'}"></span>เงินสด
-                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>เงินโอน
-                    <span class="checkbox-print${paymentMethod === 'เครดิตการ์ด' ? ' checked disabled' : ' disabled'}"></span>เครดิตการ์ด
+                    <span class="checkbox-print${paymentMethod === 'QR' ? ' checked disabled' : ' disabled'}"></span>QR
+                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>โอนผ่านธนาคาร
                   </td>
                 </tr>
               </table>
@@ -1285,7 +1285,7 @@ const Booking = () => {
   // ฟังก์ชันชำระเงิน
   const openPaymentModal = (price, bookingData) => {
     setPaymentAmount(price);
-    setPaymentType('โอนผ่านธนาคาร');
+    setPaymentType('QR');
     setCashReceived('');
     setChange(0);
     setPaymentModalOpen(true);
@@ -1922,12 +1922,12 @@ const Booking = () => {
                 onChange={e => setPaymentType(e.target.value)}
                 sx={{ justifyContent: 'center', mb: 2 }}
               >
-                <FormControlLabel value="โอนผ่านธนาคาร" control={<Radio />} label="โอนผ่านธนาคาร" />
+                <FormControlLabel value="QR" control={<Radio />} label="QR" />
                 <FormControlLabel value="เงินสด" control={<Radio />} label="เงินสด" />
-                <FormControlLabel value="เครดิตการ์ด" control={<Radio />} label="เครดิตการ์ด" />
+                <FormControlLabel value="โอนผ่านธนาคาร" control={<Radio />} label="โอนผ่านธนาคาร" />
               </RadioGroup>
               <p>ยอดชำระ {paymentAmount} บาท</p>
-              {paymentType === 'โอนผ่านธนาคาร' && (
+              {paymentType === 'QR' && (
                 <>
                   <QRCodeCanvas value={qrPayload} size={220} />
                   <div style={{ margin: '10px 0 0 0', fontSize: 13 }}>พร้อมเพย์: {paymentPromptPayID}</div>

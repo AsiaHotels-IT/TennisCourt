@@ -243,7 +243,7 @@ export function printSaleReportA4({
                 <th>จำนวนเงิน</th>
                 <th>เงินสด</th>
                 <th>เงินโอน</th>
-                <th>เครดิตการ์ด</th>
+                <th>โอนผ่านธนาคาร</th>
               </tr>
             </thead>
             <tbody>

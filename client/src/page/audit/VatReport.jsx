@@ -113,8 +113,8 @@ const VatReport = () => {
   // --- สำหรับรายงาน A4 ---
   // 1. สรุปยอดเงินแต่ละวิธี
   const cashItems = filteredReservation.filter(item => item.paymentMethod === "เงินสด");
-  const transferItems = filteredReservation.filter(item => item.paymentMethod === "โอนผ่านธนาคาร");
-  const cardItems = filteredReservation.filter(item => item.paymentMethod === "เครดิตการ์ด");
+  const transferItems = filteredReservation.filter(item => item.paymentMethod === "QR");
+  const cardItems = filteredReservation.filter(item => item.paymentMethod === "โอนผ่านธนาคาร");
   const totalCash = cashItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const totalTransfer = transferItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const totalCard = cardItems.reduce((sum, item) => sum + (item.price || 0), 0);

@@ -38,7 +38,7 @@ const cancelReservationSchema = new mongoose.Schema({
     },
     paymentMethod: {
       type: String,
-      enum: ['ยังไม่ชำระเงิน','เงินสด', 'โอนผ่านธนาคาร'],
+      enum: ['ยังไม่ชำระเงิน','เงินสด','QR', 'โอนผ่านธนาคาร'],
       default: 'ยังไม่ชำระเงิน'
     },
     refPerson:{
