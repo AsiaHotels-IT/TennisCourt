@@ -124,6 +124,10 @@ const Reservation = ({ selectedDate }) => {
       window.location.reload();
 
     } catch (error) {
+      if (!cusTel || !/^[0-9]+$/.test(cusTel)) {
+        alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (เฉพาะตัวเลขเท่านั้น)');
+        return;
+      }
       if (error.response && error.response.data && error.response.data.message) {
         alert(error.response.data.message);
       } else {
@@ -376,7 +380,16 @@ const Reservation = ({ selectedDate }) => {
       
         <label style={labelStyle}>
           เบอร์ติดต่อ :
-          <input type="tel" value={cusTel} onChange={(e) => setCusTel(e.target.value)} style={inputStyle} />
+          <input
+            type="tel"
+            value={cusTel}
+            onChange={(e) => {
+              const numericValue = e.target.value.replace(/[^0-9]/g, "");
+              setCusTel(numericValue);
+            }}
+            style={inputStyle}
+            required
+          />  
         </label>
       
         <label style={labelStyle}>

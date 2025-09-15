@@ -242,7 +242,7 @@ export function printSaleReportA4({
                 <th>ชั่วโมงจอง</th>
                 <th>จำนวนเงิน</th>
                 <th>เงินสด</th>
-                <th>เงินโอน</th>
+                <th>QR</th>
                 <th>โอนผ่านธนาคาร</th>
               </tr>
             </thead>

@@ -110,6 +110,10 @@ const Reservation = ({ selectedDate }) => {
       window.location.reload();
 
     } catch (error) {
+      if (!cusTel || !/^[0-9]+$/.test(cusTel)) {
+        alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (เฉพาะตัวเลขเท่านั้น)');
+        return;
+      }
       if (error.response && error.response.data && error.response.data.message) {
         alert(error.response.data.message);
       } else {
