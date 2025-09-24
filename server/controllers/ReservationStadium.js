@@ -1,6 +1,7 @@
 const ReservationStadium = require('../model/ReservationStadium')
 const Member = require('../model/member')
 const CancelReservation = require('../model/cancelReservation')
+const Calendar = require('../model/calendar');
 
 exports.read = async(req, res)=>{
     try{
@@ -54,6 +55,14 @@ exports.create = async (req, res) => {
         await member.save();
       }
     }
+
+    // เพิ่มข้อมูลไปยัง Calendar
+    const calendarEntry = new Calendar({
+      reservDate: data.reservDate,
+      startTime: data.startTime,
+      endTime: data.endTime
+    });
+    await calendarEntry.save();
 
     res.send(reserv);
 
@@ -242,6 +251,7 @@ exports.payAndCreateReceipt = async (req, res) => {
     }
     const seqStr = seq.toString().padStart(4, '0');
     const receiptNumber = `TN${yearShort}${seqStr}`;
+    const receiptDate = new Date(now.getTime() + 7 * 60 * 60 * 1000);
 
     // บันทึกข้อมูลการชำระเงินและเลขใบเสร็จ
     reserv.paymentMethod = paymentMethod;
@@ -250,7 +260,7 @@ exports.payAndCreateReceipt = async (req, res) => {
     reserv.username = username;
     reserv.price = price;
     reserv.payDate = now.toLocaleString("th-TH", { hour12: false });
-    reserv.receiptDate = now;
+    reserv.receiptDate = receiptDate;
     reserv.receiptNumber = receiptNumber;
 
     await reserv.save();
