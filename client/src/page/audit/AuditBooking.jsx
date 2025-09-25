@@ -78,7 +78,11 @@ const AuditBooking = () => {
   const calendarRef = useRef(null);
   const [reprintPassword, setReprintPassword] = useState("");
   const [reprintCode, setReprintCode] = useState("");
-  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editEventData, setEditEventData] = useState(null);
+  const [editNewStart, setEditNewStart] = useState(null);
+  const [editNewEnd, setEditNewEnd] = useState(null);
+
 
   // สร้าง payload promptpay qr ตามเบอร์และจำนวนเงิน
   const qrPayload = generatePayload(paymentPromptPayID, { price: paymentAmount });
@@ -390,57 +394,57 @@ const AuditBooking = () => {
     printWindow.document.close();
   };
   const handleEventDrop = ({ event, start, end, allDay }) => {
-  
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const newDate = new Date(start);
-    newDate.setHours(0, 0, 0, 0);
-
-    const oldDate = new Date(event.start);
-    oldDate.setHours(0, 0, 0, 0);
-
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-
-    const now = moment();
-    const oldEnd = moment(event.end);
-    if (oldEnd.isBefore(now)) {
-      alert("ไม่สามารถเปลี่ยนวันและเวลาจองได้ เนื่องจากเวลานี้ผ่านไปแล้ว");
-      return;
-    }
-
-    const newStartMoment = moment(start);
-    const newEndMoment = moment(end);
-
-    if (newStartMoment.isBefore(now) || newEndMoment.isBefore(now)) {
-      alert("ไม่สามารถเลื่อนจองไปวันหรือเวลาที่ผ่านมาแล้ว");
-      return;
-    }
-
-    if (newDate < today) {
-      alert("ไม่สามารถย้ายไปวันก่อนวันนี้ได้");
-      return;
-    }
-
-    const isFromYesterday = oldDate.getTime() === yesterday.getTime();
-    const isMoveToTodayOrFuture = newDate.getTime() >= today.getTime();
-
-    if (isFromYesterday && isMoveToTodayOrFuture) {
-      alert("ไม่สามารถย้ายจากวานนี้มายังวันนี้หรือวันถัดไปได้");
-      return;
-    }
-
-    const endHour = end.getHours();
-    if (endHour > 22 || (endHour === 22 && end.getMinutes() > 0)) {
-      alert('ไม่สามารถจองหรือเลื่อนหลัง 22:00 ได้');
-      return;
-    }
-
-    setDraggedEvent(event);
-    setNewStart(start);
-    setNewEnd(end);
-    setIsModalOpen(true);
+  //
+  //  const today = new Date();
+  //  today.setHours(0, 0, 0, 0);
+//
+  //  const newDate = new Date(start);
+  //  newDate.setHours(0, 0, 0, 0);
+//
+  //  const oldDate = new Date(event.start);
+  //  oldDate.setHours(0, 0, 0, 0);
+//
+  //  const yesterday = new Date(today);
+  //  yesterday.setDate(today.getDate() - 1);
+//
+  //  const now = moment();
+  //  const oldEnd = moment(event.end);
+  //  if (oldEnd.isBefore(now)) {
+  //    alert("ไม่สามารถเปลี่ยนวันและเวลาจองได้ เนื่องจากเวลานี้ผ่านไปแล้ว");
+  //    return;
+  //  }
+//
+  //  const newStartMoment = moment(start);
+  //  const newEndMoment = moment(end);
+//
+  //  if (newStartMoment.isBefore(now) || newEndMoment.isBefore(now)) {
+  //    alert("ไม่สามารถเลื่อนจองไปวันหรือเวลาที่ผ่านมาแล้ว");
+  //    return;
+  //  }
+//
+  //  if (newDate < today) {
+  //    alert("ไม่สามารถย้ายไปวันก่อนวันนี้ได้");
+  //    return;
+  //  }
+//
+  //  const isFromYesterday = oldDate.getTime() === yesterday.getTime();
+  //  const isMoveToTodayOrFuture = newDate.getTime() >= today.getTime();
+//
+  //  if (isFromYesterday && isMoveToTodayOrFuture) {
+  //    alert("ไม่สามารถย้ายจากวานนี้มายังวันนี้หรือวันถัดไปได้");
+  //    return;
+  //  }
+//
+  //  const endHour = end.getHours();
+  //  if (endHour > 22 || (endHour === 22 && end.getMinutes() > 0)) {
+  //    alert('ไม่สามารถจองหรือเลื่อนหลัง 22:00 ได้');
+  //    return;
+  //  }
+//
+  //  setDraggedEvent(event);
+  //  setNewStart(start);
+  //  setNewEnd(end);
+  //  setIsModalOpen(true);
   };
 
   const handleDeleteReservation = async (reservID, name) => {
@@ -942,344 +946,6 @@ const AuditBooking = () => {
             : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
           </div>
         </div>
-
-        <div class="container" style="margin-top: 500px;">
-          <div class="header">
-            <div class="companyAddress">
-              <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
-              <span class="address">296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400<br>
-              เลขประจำตัวผู้เสียภาษี 0107535000346 <br/> โทร 02-2170808 ต่อ 5340</span>
-            </div>  
-            <div class="title">
-              <span>ใบเสร็จรับเงิน/ใบกำกับภาษีอย่างย่อ</span><br>
-              <span>สำเนา</span>
-            </div>  
-          </div>
-          <div class="cusData">
-            <div class="cusData-left">
-              <table>
-                <tr>
-                  <td><strong>ชื่อลูกค้า :</strong> ${reservation.cusName}</td>
-                  <td><strong>หมายเลขการจอง :</strong> ${reservation.reservID}</td>
-                </tr>
-                <tr>
-                  <td><strong>วันที่จอง :</strong> ${(() => {
-                    if (!reservation.reservDate) return '-';
-                    const match = String(reservation.reservDate).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-                    if (match) {
-                      const day = match[1].padStart(2, '0');
-                      const month = match[2].padStart(2, '0');
-                      const year = (parseInt(match[3], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    const iso = String(reservation.reservDate).match(/(\d{4})-(\d{2})-(\d{2})/);
-                    if (iso) {
-                      const day = iso[3];
-                      const month = iso[2];
-                      const year = (parseInt(iso[1], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    return String(reservation.reservDate);
-                  })()}</td>
-                  <td><strong>เวลา :</strong> ${reservation.startTime} - ${reservation.endTime}</td>
-                </tr>
-                <tr>
-                  <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
-                  <td class="left" style="vertical-align: top;"><strong>จำนวน : </strong> ${(() => {
-                    if (reservation && reservation.startTime && reservation.endTime) {
-                      const [startH, startM] = reservation.startTime.split(":").map(Number);
-                      const [endH, endM] = reservation.endTime.split(":").map(Number);
-                      let hours = endH + endM/60 - (startH + startM/60);
-                      return formatHourDisplay(hours);
-                    }
-                    return "- ชั่วโมง";
-                  })()}</td>
-                </tr>
-              </table>
-            </div>
-            <div class="cusData-right">
-              <table>
-                <tr>
-                  <td><strong>เลขที่ / No. :</strong> ${reservation.receiptNumber || '-'}</td>
-                </tr>
-                <tr>
-                  <td><strong>วันที่ / Date :</strong> ${(() => {
-                    if (!receiptDate) return '-';
-                    const match = String(receiptDate).match(/(\d{2})\/(\d{2})\/(\d{4})/);
-                    if (match) {
-                      const day = match[1];
-                      const month = match[2];
-                      const year = (parseInt(match[3], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    const iso = String(receiptDate).match(/(\d{4})-(\d{2})-(\d{2})/);
-                    if (iso) {
-                      const day = iso[3];
-                      const month = iso[2];
-                      const year = (parseInt(iso[1], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    if (receiptDate instanceof Date) {
-                      const day = receiptDate.getDate().toString().padStart(2, '0');
-                      const month = (receiptDate.getMonth() + 1).toString().padStart(2, '0');
-                      const year = (receiptDate.getFullYear() + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    return String(receiptDate);
-                  })()}</td>
-                </tr>
-              </table>
-            </div>
-          </div>
-          <table>
-            <tr>
-              <th class="center" style="width:12%;">ลำดับที่<br>Item</th>
-              <th class="center" style="width:68%;">รายการ<br>Descriptions</th>
-              <!-- <th class="center" style="width:12%;">จำนวน<br>Quantity</th>
-              <th class="center" style="width:20%;">ราคาต่อหน่วย<br>Unit price</th> -->
-              <th class="center" style="width:20%;">จำนวนเงิน<br>Amount</th>
-            </tr>
-            <tr style="height: 100px; align-items: top;">
-              <td class="center" style="vertical-align: top;">1</td>
-              <td class="left" style="vertical-align: top;">Tennis ${(() => {
-                if (reservation && reservation.startTime && reservation.endTime) {
-                  const [startH, startM] = reservation.startTime.split(":").map(Number);
-                  const [endH, endM] = reservation.endTime.split(":").map(Number);
-                  let hours = endH + endM/60 - (startH + startM/60);
-                  return formatHourDisplay(hours);
-                }
-                return "- ชั่วโมง";
-              })()}</td>
-             <!-- <td class="center" style="vertical-align: top;">1</td>
-              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td> -->
-              
-              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
-            </tr>
-          </table>
-          <table class="amount-table">
-            <tr>
-              <td class="no-border" style="width:12%;"><strong>ตัวอักษร</strong></td>
-              <td class="no-border" style="width:32%; "><strong>${(() => {
-                // ฟังก์ชันแปลงตัวเลขเป็นข้อความไทยบาทถ้วน
-                function thaiBahtText(num) {
-                  if (!num || isNaN(num)) return '';
-                  const thNum = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
-                  const thDigit = ['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
-                  let s = '';
-                  let n = Math.floor(Number(num));
-                  let str = n.toString();
-                  let len = str.length;
-                  for (let i = 0; i < len; i++) {
-                    let digit = len - i - 1;
-                    let numChar = parseInt(str[i]);
-                    if (numChar !== 0) {
-                      if (digit === 1 && numChar === 1) s += 'สิบ';
-                      else if (digit === 1 && numChar === 2) s += 'ยี่สิบ';
-                      else if (digit === 1) s += thNum[numChar] + 'สิบ';
-                      else if (digit === 0 && numChar === 1 && len > 1) s += 'เอ็ด';
-                      else s += thNum[numChar] + thDigit[digit];
-                    }
-                  }
-                  return `(${s}บาทถ้วน)`;
-                }
-                return thaiBahtText(price);
-              })()}</strong></td>
-              <td class="no-border" style="width:36%; text-align: center; background-color: #dfdfdf;"><strong>ราคาสุทธิ (รวมภาษีมูลค่าเพิ่ม)</strong></td>
-              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
-            </tr>
-          </table>
-          <div class="signature">
-            <div>
-              <table>
-                <tr>
-                  <td class="no-border left" style="padding-top: 20px;">
-                    <strong>ชำระโดย</strong>&nbsp; 
-                    <span class="checkbox-print${paymentMethod === 'เงินสด' ? ' checked disabled' : ' disabled'}"></span>เงินสด
-                    <span class="checkbox-print${paymentMethod === 'QR' ? ' checked disabled' : ' disabled'}"></span>QR
-                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>โอนผ่านธนาคาร
-                  </td>
-                </tr>
-              </table>
-            </div>
-            <div class="signature-block">
-              <p>ลงชื่อ  ___________________________</p>
-              <p>(ผู้รับเงิน)</p>
-            </div>
-          </div>
-          <div class="note" style="font-size: 10px;">
-            <u>เงื่อนไขการจอง</u>&nbsp;
-            : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
-          </div>
-        </div>
-
-        <div class="container" style="margin-top: 500px;">
-          <div class="header">
-            <div class="companyAddress">
-              <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
-              <span class="address">296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400<br>
-              เลขประจำตัวผู้เสียภาษี 0107535000346 <br/> โทร 02-2170808 ต่อ 5340</span>
-            </div>  
-            <div class="title">
-              <span>ใบเสร็จรับเงิน/ใบกำกับภาษีอย่างย่อ</span><br>
-              <span>สำเนา</span>
-            </div>  
-          </div>
-          <div class="cusData">
-            <div class="cusData-left">
-              <table>
-                <tr>
-                  <td><strong>ชื่อลูกค้า :</strong> ${reservation.cusName}</td>
-                  <td><strong>หมายเลขการจอง :</strong> ${reservation.reservID}</td>
-                </tr>
-                <tr>
-                  <td><strong>วันที่จอง :</strong> ${(() => {
-                    if (!reservation.reservDate) return '-';
-                    const match = String(reservation.reservDate).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-                    if (match) {
-                      const day = match[1].padStart(2, '0');
-                      const month = match[2].padStart(2, '0');
-                      const year = (parseInt(match[3], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    const iso = String(reservation.reservDate).match(/(\d{4})-(\d{2})-(\d{2})/);
-                    if (iso) {
-                      const day = iso[3];
-                      const month = iso[2];
-                      const year = (parseInt(iso[1], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    return String(reservation.reservDate);
-                  })()}</td>
-                  <td><strong>เวลา :</strong> ${reservation.startTime} - ${reservation.endTime}</td>
-                </tr>
-                <tr>
-                  <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
-                  <td class="left" style="vertical-align: top;"><strong>จำนวน : </strong> ${(() => {
-                    if (reservation && reservation.startTime && reservation.endTime) {
-                      const [startH, startM] = reservation.startTime.split(":").map(Number);
-                      const [endH, endM] = reservation.endTime.split(":").map(Number);
-                      let hours = endH + endM/60 - (startH + startM/60);
-                      return formatHourDisplay(hours);
-                    }
-                    return "- ชั่วโมง";
-                  })()}</td>
-                </tr>
-              </table>
-            </div>
-            <div class="cusData-right">
-              <table>
-                <tr>
-                  <td><strong>เลขที่ / No. :</strong> ${reservation.receiptNumber || '-'}</td>
-                </tr>
-                <tr>
-                  <td><strong>วันที่ / Date :</strong> ${(() => {
-                    if (!receiptDate) return '-';
-                    const match = String(receiptDate).match(/(\d{2})\/(\d{2})\/(\d{4})/);
-                    if (match) {
-                      const day = match[1];
-                      const month = match[2];
-                      const year = (parseInt(match[3], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    const iso = String(receiptDate).match(/(\d{4})-(\d{2})-(\d{2})/);
-                    if (iso) {
-                      const day = iso[3];
-                      const month = iso[2];
-                      const year = (parseInt(iso[1], 10) + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    if (receiptDate instanceof Date) {
-                      const day = receiptDate.getDate().toString().padStart(2, '0');
-                      const month = (receiptDate.getMonth() + 1).toString().padStart(2, '0');
-                      const year = (receiptDate.getFullYear() + 543).toString();
-                      return `${day}/${month}/${year}`;
-                    }
-                    return String(receiptDate);
-                  })()}</td>
-                </tr>
-              </table>
-            </div>
-          </div>
-          <table>
-            <tr>
-              <th class="center" style="width:12%;">ลำดับที่<br>Item</th>
-              <th class="center" style="width:68%;">รายการ<br>Descriptions</th>
-              <!-- <th class="center" style="width:12%;">จำนวน<br>Quantity</th>
-              <th class="center" style="width:20%;">ราคาต่อหน่วย<br>Unit price</th> -->
-              <th class="center" style="width:20%;">จำนวนเงิน<br>Amount</th>
-            </tr>
-            <tr style="height: 100px; align-items: top;">
-              <td class="center" style="vertical-align: top;">1</td>
-              <td class="left" style="vertical-align: top;">Tennis ${(() => {
-                if (reservation && reservation.startTime && reservation.endTime) {
-                  const [startH, startM] = reservation.startTime.split(":").map(Number);
-                  const [endH, endM] = reservation.endTime.split(":").map(Number);
-                  let hours = endH + endM/60 - (startH + startM/60);
-                  return formatHourDisplay(hours);
-                }
-                return "- ชั่วโมง";
-              })()}</td>
-             <!-- <td class="center" style="vertical-align: top;">1</td>
-              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td> -->
-              
-              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
-            </tr>
-          </table>
-          <table class="amount-table">
-            <tr>
-              <td class="no-border" style="width:12%;"><strong>ตัวอักษร</strong></td>
-              <td class="no-border" style="width:32%; "><strong>${(() => {
-                // ฟังก์ชันแปลงตัวเลขเป็นข้อความไทยบาทถ้วน
-                function thaiBahtText(num) {
-                  if (!num || isNaN(num)) return '';
-                  const thNum = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
-                  const thDigit = ['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
-                  let s = '';
-                  let n = Math.floor(Number(num));
-                  let str = n.toString();
-                  let len = str.length;
-                  for (let i = 0; i < len; i++) {
-                    let digit = len - i - 1;
-                    let numChar = parseInt(str[i]);
-                    if (numChar !== 0) {
-                      if (digit === 1 && numChar === 1) s += 'สิบ';
-                      else if (digit === 1 && numChar === 2) s += 'ยี่สิบ';
-                      else if (digit === 1) s += thNum[numChar] + 'สิบ';
-                      else if (digit === 0 && numChar === 1 && len > 1) s += 'เอ็ด';
-                      else s += thNum[numChar] + thDigit[digit];
-                    }
-                  }
-                  return `(${s}บาทถ้วน)`;
-                }
-                return thaiBahtText(price);
-              })()}</strong></td>
-              <td class="no-border" style="width:36%; text-align: center; background-color: #dfdfdf;"><strong>ราคาสุทธิ (รวมภาษีมูลค่าเพิ่ม)</strong></td>
-              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
-            </tr>
-          </table>
-          <div class="signature">
-            <div>
-              <table>
-                <tr>
-                  <td class="no-border left" style="padding-top: 20px;">
-                    <strong>ชำระโดย</strong>&nbsp; 
-                    <span class="checkbox-print${paymentMethod === 'เงินสด' ? ' checked disabled' : ' disabled'}"></span>เงินสด
-                    <span class="checkbox-print${paymentMethod === 'QR' ? ' checked disabled' : ' disabled'}"></span>QR
-                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>โอนผ่านธนาคาร
-                  </td>
-                </tr>
-              </table>
-            </div>
-            <div class="signature-block">
-              <p>ลงชื่อ  ___________________________</p>
-              <p>(ผู้รับเงิน)</p>
-            </div>
-          </div>
-          <div class="note" style="font-size: 10px;">
-            <u>เงื่อนไขการจอง</u>&nbsp;
-            : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
-          </div>
-        </div>
         <script>
           window.onload = function () {
             window.print();
@@ -1570,7 +1236,175 @@ const AuditBooking = () => {
                     let digit = len - i - 1;
                     let numChar = parseInt(str[i]);
                     if (numChar !== 0) {
+                      if (digit === 1 && numChar === 1) s += 'สิบ';
+                      else if (digit === 1 && numChar === 2) s += 'ยี่สิบ';
+                      else if (digit === 1) s += thNum[numChar] + 'สิบ';
+                      else if (digit === 0 && numChar === 1 && len > 1) s += 'เอ็ด';
+                      else s += thNum[numChar] + thDigit[digit];
+                    }
+                  }
+                  return `(${s}บาทถ้วน)`;
+                }
+                return thaiBahtText(price);
+              })()}</strong></td>
+              <td class="no-border" style="width:36%; text-align: center; background-color: #dfdfdf;"><strong>ราคาสุทธิ (รวมภาษีมูลค่าเพิ่ม)</strong></td>
+              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
+            </tr>
+          </table>
+          <div class="signature">
+            <div>
+              <table>
+                <tr>
+                  <td class="no-border left" style="padding-top: 20px;">
+                    <strong>ชำระโดย</strong>&nbsp; 
+                    <span class="checkbox-print${paymentMethod === 'เงินสด' ? ' checked disabled' : ' disabled'}"></span>เงินสด
+                    <span class="checkbox-print${paymentMethod === 'QR' ? ' checked disabled' : ' disabled'}"></span>QR
+                    <span class="checkbox-print${paymentMethod === 'โอนผ่านธนาคาร' ? ' checked disabled' : ' disabled'}"></span>โอนผ่านธนาคาร
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="signature-block">
+              <p>ลงชื่อ  ___________________________</p>
+              <p>(ผู้รับเงิน)</p>
+            </div>
+          </div>
+          <div class="note" style="font-size: 10px;">
+            <u>เงื่อนไขการจอง</u>&nbsp;
+            : ขอสงวนสิทธิ์ไม่คืนเงินค่าบริการทุกกรณี ยกเว้นเฉพาะกรณีที่ไม่สามารถใช้สนามได้เนื่องจากฝนตกเท่านั้น
+          </div>
+        </div>
 
+        <div class="container" style="margin-top: 500px;">
+          <div class="header">
+            <div class="companyAddress">
+              <span class="company">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน) สำนักงานใหญ่</span><br>
+              <span class="address">296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพมหานคร 10400<br>
+              เลขประจำตัวผู้เสียภาษี 0107535000346 <br/> โทร 02-2170808 ต่อ 5340</span>
+            </div>  
+            <div class="title">
+              <span>ใบเสร็จรับเงิน/ใบกำกับภาษีอย่างย่อ</span><br>
+              <span>สำเนา</span>
+            </div>  
+          </div>
+          <div class="cusData">
+            <div class="cusData-left">
+              <table>
+                <tr>
+                  <td><strong>ชื่อลูกค้า :</strong> ${reservation.cusName}</td>
+                  <td><strong>หมายเลขการจอง :</strong> ${reservation.reservID}</td>
+                </tr>
+                <tr>
+                  <td><strong>วันที่จอง :</strong> ${(() => {
+                    if (!reservation.reservDate) return '-';
+                    const match = String(reservation.reservDate).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                    if (match) {
+                      const day = match[1].padStart(2, '0');
+                      const month = match[2].padStart(2, '0');
+                      const year = (parseInt(match[3], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    const iso = String(reservation.reservDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (iso) {
+                      const day = iso[3];
+                      const month = iso[2];
+                      const year = (parseInt(iso[1], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    return String(reservation.reservDate);
+                  })()}</td>
+                  <td><strong>เวลา :</strong> ${reservation.startTime} - ${reservation.endTime}</td>
+                </tr>
+                <tr>
+                  <td><strong>โทรศัพท์ :</strong> ${reservation.cusTel || '-'}</td>
+                  <td class="left" style="vertical-align: top;"><strong>จำนวน : </strong> ${(() => {
+                    if (reservation && reservation.startTime && reservation.endTime) {
+                      const [startH, startM] = reservation.startTime.split(":").map(Number);
+                      const [endH, endM] = reservation.endTime.split(":").map(Number);
+                      let hours = endH + endM/60 - (startH + startM/60);
+                      return formatHourDisplay(hours);
+                    }
+                    return "- ชั่วโมง";
+                  })()}</td>
+                </tr>
+              </table>
+            </div>
+            <div class="cusData-right">
+              <table>
+                <tr>
+                  <td><strong>เลขที่ / No. :</strong> ${reservation.receiptNumber || '-'}</td>
+                </tr>
+                <tr>
+                  <td><strong>วันที่ / Date :</strong> ${(() => {
+                    if (!receiptDate) return '-';
+                    const match = String(receiptDate).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                    if (match) {
+                      const day = match[1];
+                      const month = match[2];
+                      const year = (parseInt(match[3], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    const iso = String(receiptDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (iso) {
+                      const day = iso[3];
+                      const month = iso[2];
+                      const year = (parseInt(iso[1], 10) + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    if (receiptDate instanceof Date) {
+                      const day = receiptDate.getDate().toString().padStart(2, '0');
+                      const month = (receiptDate.getMonth() + 1).toString().padStart(2, '0');
+                      const year = (receiptDate.getFullYear() + 543).toString();
+                      return `${day}/${month}/${year}`;
+                    }
+                    return String(receiptDate);
+                  })()}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+          <table>
+            <tr>
+              <th class="center" style="width:12%;">ลำดับที่<br>Item</th>
+              <th class="center" style="width:68%;">รายการ<br>Descriptions</th>
+              <!-- <th class="center" style="width:12%;">จำนวน<br>Quantity</th>
+              <th class="center" style="width:20%;">ราคาต่อหน่วย<br>Unit price</th> -->
+              <th class="center" style="width:20%;">จำนวนเงิน<br>Amount</th>
+            </tr>
+            <tr style="height: 100px; align-items: top;">
+              <td class="center" style="vertical-align: top;">1</td>
+              <td class="left" style="vertical-align: top;">Tennis ${(() => {
+                if (reservation && reservation.startTime && reservation.endTime) {
+                  const [startH, startM] = reservation.startTime.split(":").map(Number);
+                  const [endH, endM] = reservation.endTime.split(":").map(Number);
+                  let hours = endH + endM/60 - (startH + startM/60);
+                  return formatHourDisplay(hours);
+                }
+                return "- ชั่วโมง";
+              })()}</td>
+             <!-- <td class="center" style="vertical-align: top;">1</td>
+              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td> -->
+              
+              <td class="right" style="vertical-align: top;">${(price !== undefined && price !== null && !isNaN(price) ? Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')}</td>
+            </tr>
+          </table>
+          <table class="amount-table">
+            <tr>
+              <td class="no-border" style="width:12%;"><strong>ตัวอักษร</strong></td>
+              <td class="no-border" style="width:32%; "><strong>${(() => {
+                // ฟังก์ชันแปลงตัวเลขเป็นข้อความไทยบาทถ้วน
+                function thaiBahtText(num) {
+                  if (!num || isNaN(num)) return '';
+                  const thNum = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+                  const thDigit = ['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
+                  let s = '';
+                  let n = Math.floor(Number(num));
+                  let str = n.toString();
+                  let len = str.length;
+                  for (let i = 0; i < len; i++) {
+                    let digit = len - i - 1;
+                    let numChar = parseInt(str[i]);
+                    if (numChar !== 0) {
                       if (digit === 1 && numChar === 1) s += 'สิบ';
                       else if (digit === 1 && numChar === 2) s += 'ยี่สิบ';
                       else if (digit === 1) s += thNum[numChar] + 'สิบ';
@@ -1681,7 +1515,6 @@ const AuditBooking = () => {
         changeVal,
         username: user.name,
         price: paymentAmount
-        
       });
 
       // ข้อมูล reservation ที่ชำระล่าสุด
@@ -1706,7 +1539,6 @@ const AuditBooking = () => {
       setEvents(mapReservationsToEvents(res2.data));
     } catch (err) {
       alert('บันทึกข้อมูลการชำระเงินล้มเหลว');
-      console.error(err);
     }
   };
 
@@ -1797,6 +1629,35 @@ const AuditBooking = () => {
       alert('ออกจากระบบไม่สำเร็จ');
     }
   };
+
+  // ฟังก์ชั่นคำนวณราคา
+  const calculatePrice = (start, end) => {
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+
+    let total = 0;
+    let currentMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+
+    while (currentMinutes < endMinutes) {
+      if (currentMinutes >= 1080) { // หลัง 18:00
+        let nextMinutes = Math.min(currentMinutes + 60, endMinutes);
+        total += 600 * ((nextMinutes - currentMinutes) / 60);
+        currentMinutes = nextMinutes;
+      } else {
+        if (endMinutes > 1080 && currentMinutes + 60 > 1080) { // เศษก่อน 18:00
+          let before1800 = 1080 - currentMinutes;
+          total += (450 / 60) * before1800;
+          currentMinutes += before1800;
+        } else {
+          let nextMinutes = Math.min(currentMinutes + 60, endMinutes);
+          total += 450 * ((nextMinutes - currentMinutes) / 60);
+          currentMinutes = nextMinutes;
+        }
+      }
+    }
+    return Math.round(total * 100) / 100;
+  };
   
   return (
     <div className='booking-container'>
@@ -1825,7 +1686,7 @@ const AuditBooking = () => {
             minWidth: '180px'
           }}
         >
-          Tennis Booking  
+          Tennis Booking 
         </h1>
         <span style={{textAlign: 'left'}}>{user ? `ยินดีต้อนรับ, ${user.name}` : 'กรุณาเข้าสู่ระบบ'}</span>
         {/* Right Controls */}
@@ -2040,6 +1901,41 @@ const AuditBooking = () => {
               >
                 ดูใบจอง
               </button>
+              {!isPastOrYesterday(selectedEvent.reservDate) &&(
+                 <button
+                  onClick={() => {
+                    setEditEventData(selectedEvent);
+
+                    // สร้าง Date ของวันจอง + เวลา startTime/endTime เดิม
+                    const [startHour, startMinute] = selectedEvent.startTime.split(':').map(Number);
+                    const [endHour, endMinute] = selectedEvent.endTime.split(':').map(Number);
+                    // ใช้วันที่จองเดิม
+                    const [day, month, year] = selectedEvent.reservDate.split('/').map(Number);
+
+                    const startDate = new Date(year, month - 1, day, startHour, startMinute, 0, 0);
+                    const endDate = new Date(year, month - 1, day, endHour, endMinute, 0, 0);
+
+                    setEditNewStart(startDate);
+                    setEditNewEnd(endDate);
+                    setIsEditModalOpen(true);
+                  }}
+                  style={{
+                    padding: '6px 18px',
+                    fontSize: '18px',
+                    color: '#65000a',
+                    backgroundColor: '#d7ba80',
+                    border: 'none',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s ease',
+                    userSelect: 'none',
+                    height: '40px',
+                    fontFamily: '"Noto Sans Thai", sans-serif',
+                  }}
+                >
+                  แก้ไขการจอง
+                </button>
+              )}
               {!isPastOrYesterday(selectedEvent.reservDate) && selectedEvent.paymentMethod === 'ยังไม่ชำระเงิน' && (
                 <>
                   <button
@@ -2102,6 +1998,145 @@ const AuditBooking = () => {
                 </Button>
             </div>
           )}
+          <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+            <Box sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              bgcolor: 'background.paper',
+              p: 4,
+              borderRadius: 2,
+              boxShadow: 24,
+              width: 400
+            }}>
+              <h2>แก้ไขการจอง</h2>
+              <div>หมายเลขการจอง: {editEventData?.reservID}</div>
+              <div>ชื่อ: {editEventData?.cusName}</div>
+              <div>
+                เวลาเดิม: {editEventData?.startTime} - {editEventData?.endTime}
+              </div>
+              <div style={{ margin: "10px 0" }}>
+                <label>วันใหม่: </label>
+                <input
+                  type="date"
+                  value={editNewStart ? moment(editNewStart).format('YYYY-MM-DD') : ""}
+                  onChange={e => {
+                    const [year, month, day] = e.target.value.split('-').map(Number);
+                    const newStart = new Date(editNewStart);
+                    const newEnd = new Date(editNewEnd);
+                  
+                    newStart.setFullYear(year, month - 1, day);
+                    newEnd.setFullYear(year, month - 1, day);
+                  
+                    setEditNewStart(newStart);
+                    setEditNewEnd(newEnd);
+                  }}
+                />
+                <span style={{ marginLeft: 10, color: "#555" }}>
+                  {editNewStart ? moment(editNewStart).format('DD/MM/YYYY') : ""}
+                </span>
+              </div>
+              <div style={{ margin: "10px 0" }}>
+                <label>เวลาเริ่ม: </label>
+                <input
+                  type="time"
+                  step="60"
+                  value={editNewStart ? moment(editNewStart).format('HH:mm') : ""}
+                  onChange={e => {
+                    const [h, m] = e.target.value.split(':').map(Number);
+                    const newStart = new Date(editNewStart);
+                    newStart.setHours(h, m, 0, 0);
+                    setEditNewStart(newStart);
+                  }}
+                />
+              </div>
+              <div style={{ margin: "10px 0" }}>
+                <label>เวลาเสร็จ: </label>
+                <input
+                  type="time"
+                  step="60"
+                  value={editNewEnd ? moment(editNewEnd).format('HH:mm') : ""}
+                  onChange={e => {
+                    const [h, m] = e.target.value.split(':').map(Number);
+                    const newEnd = new Date(editNewEnd);
+                    newEnd.setHours(h, m, 0, 0);
+                    setEditNewEnd(newEnd);
+                  }}
+                />
+              </div>
+              <div>
+                <strong>จำนวนชั่วโมง:</strong> {
+                  editNewStart && editNewEnd
+                  ? ((editNewEnd - editNewStart) / (1000 * 60 * 60)).toFixed(2)
+                  : "-"
+                } ชั่วโมง
+              </div>
+              <div>
+                <strong>ราคา:</strong> {editEventData?.price} บาท
+              </div>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                <Button variant="outlined" onClick={() => setIsEditModalOpen(false)}>ยกเลิก</Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={async () => {
+                    if (!editNewStart || !editNewEnd) {
+                      alert('กรุณาเลือกวันและเวลาเริ่ม-สิ้นสุดใหม่');
+                      return;
+                    }
+                    // เพิ่มเงื่อนไขนี้ (เปรียบเทียบกับเวลาปัจจุบัน)
+                    const now = new Date();
+                    if (editNewStart < now) {
+                      alert('ไม่สามารถย้ายไปวันหรือเวลาก่อนเวลาปัจจุบันได้');
+                      return;
+                    }
+                    // เช็คชั่วโมงเท่าเดิม
+                    const oldDuration = (
+                      (parseInt(editEventData.endTime.split(':')[0]) * 60 + parseInt(editEventData.endTime.split(':')[1]))
+                      - (parseInt(editEventData.startTime.split(':')[0]) * 60 + parseInt(editEventData.startTime.split(':')[1]))
+                    ) / 60;
+                    const newDuration = ((editNewEnd - editNewStart) / (1000 * 60 * 60));
+                    if (Math.abs(newDuration - oldDuration) > 0.01) {
+                      alert('จำนวนชั่วโมงต้องเท่าเดิม');
+                      return;
+                    }
+                    // เช็คราคาใหม่ต้องเท่าราคาเดิม
+                    const startStr = moment(editNewStart).format('HH:mm');
+                    const endStr = moment(editNewEnd).format('HH:mm');
+                    const newPrice = calculatePrice(startStr, endStr);
+                    if (Number(newPrice) !== Number(editEventData.price)) {
+                      alert(`ราคารวมต้องเท่ากับเดิม (${editEventData.price} บาท)`);
+                      return;
+                    }
+                    try {
+                      const updatedData = {
+                        reservID: editEventData.reservID,
+                        startTime: startStr,
+                        endTime: endStr,
+                        reservDate: moment(editNewStart).format('DD/MM/YYYY'),
+                        changer: user?.name || user?.username,
+                        oldStart: `${editEventData.reservDate} ${editEventData.startTime}`,
+                        oldEnd: `${editEventData.reservDate} ${editEventData.endTime}`,
+                        newStart: moment(editNewStart).format('DD/MM/YYYY HH:mm'),
+                        newEnd: moment(editNewEnd).format('DD/MM/YYYY HH:mm'),
+                        changeTime: moment().format('DD/MM/YYYY HH:mm:ss'),
+                      };
+                      await updateReservations(editEventData.reservID, updatedData);
+                      const res = await getReservations();
+                      setEvents(mapReservationsToEvents(res.data));
+                      setIsEditModalOpen(false);
+                      window.location.reload();
+                    } catch (error) {
+                      alert('อัปเดตล้มเหลว');
+                    }
+                  }}
+                >
+                  บันทึกการเปลี่ยนแปลง
+                </Button>
+              </Box>
+            </Box>
+          </Modal>
           <Modal open={isAuditOpen} onClose={() => setIsAuditOpen(false)}>
             <Box sx={{
               position: 'absolute',

@@ -77,6 +77,10 @@ const Booking = () => {
   const [showSearchList, setShowSearchList] = useState(false);
   const calendarRef = useRef(null);
   const [reprintPassword, setReprintPassword] = useState("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editEventData, setEditEventData] = useState(null);
+  const [editNewStart, setEditNewStart] = useState(null);
+  const [editNewEnd, setEditNewEnd] = useState(null);
 
   // สร้าง payload promptpay qr ตามเบอร์และจำนวนเงิน
   const qrPayload = generatePayload(paymentPromptPayID, { price: paymentAmount });
@@ -373,59 +377,59 @@ const Booking = () => {
       printWindow.document.close();
     };
   const handleEventDrop = ({ event, start, end, allDay }) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const newDate = new Date(start);
-    newDate.setHours(0, 0, 0, 0);
-
-    const oldDate = new Date(event.start);
-    oldDate.setHours(0, 0, 0, 0);
-
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-
-    const now = moment();
-    const oldEnd = moment(event.end);
-    if (oldEnd.isBefore(now)) {
-      alert("ไม่สามารถเปลี่ยนวันและเวลาจองได้ เนื่องจากเวลานี้ผ่านไปแล้ว");
-      return;
-    }
-
-    const endHour = end.getHours();
-    if (endHour > 22 || (endHour === 22 && end.getMinutes() > 0)) {
-      alert('ไม่สามารถจองหรือเลื่อนหลัง 22:00 ได้');
-      return;
-    }
-    // ห้ามเลื่อนไปวัน-เวลาที่ผ่านมาแล้ว
-    const newStartMoment = moment(start);
-    const newEndMoment = moment(end);
-      
-    if (newStartMoment.isBefore(now) || newEndMoment.isBefore(now)) {
-      alert("ไม่สามารถเลื่อนจองไปวันหรือเวลาที่ผ่านมาแล้ว");
-      return;
-    }
-    
-    // ❌ ห้ามย้ายไปวันก่อนวันนี้
-    if (newDate < today) {
-      alert("ไม่สามารถย้ายไปวันก่อนวันนี้ได้");
-      return;
-    }
-
-    // ❌ ห้ามย้ายจากวานนี้มายังวันนี้ หรือวันหลังจากนี้
-    const isFromYesterday = oldDate.getTime() === yesterday.getTime();
-    const isMoveToTodayOrFuture = newDate.getTime() >= today.getTime();
-
-    if (isFromYesterday && isMoveToTodayOrFuture) {
-      alert("ไม่สามารถย้ายจากวานนี้มายังวันนี้หรือวันถัดไปได้");
-      return;
-    }
-
-    // ✅ ผ่านเงื่อนไขแล้ว
-    setDraggedEvent(event);
-    setNewStart(start);
-    setNewEnd(end);
-    setIsModalOpen(true);
+    //const today = new Date();
+    //today.setHours(0, 0, 0, 0);
+//
+    //const newDate = new Date(start);
+    //newDate.setHours(0, 0, 0, 0);
+//
+    //const oldDate = new Date(event.start);
+    //oldDate.setHours(0, 0, 0, 0);
+//
+    //const yesterday = new Date(today);
+    //yesterday.setDate(today.getDate() - 1);
+//
+    //const now = moment();
+    //const oldEnd = moment(event.end);
+    //if (oldEnd.isBefore(now)) {
+    //  alert("ไม่สามารถเปลี่ยนวันและเวลาจองได้ เนื่องจากเวลานี้ผ่านไปแล้ว");
+    //  return;
+    //}
+//
+    //const endHour = end.getHours();
+    //if (endHour > 22 || (endHour === 22 && end.getMinutes() > 0)) {
+    //  alert('ไม่สามารถจองหรือเลื่อนหลัง 22:00 ได้');
+    //  return;
+    //}
+    //// ห้ามเลื่อนไปวัน-เวลาที่ผ่านมาแล้ว
+    //const newStartMoment = moment(start);
+    //const newEndMoment = moment(end);
+    //  
+    //if (newStartMoment.isBefore(now) || newEndMoment.isBefore(now)) {
+    //  alert("ไม่สามารถเลื่อนจองไปวันหรือเวลาที่ผ่านมาแล้ว");
+    //  return;
+    //}
+    //
+    //// ❌ ห้ามย้ายไปวันก่อนวันนี้
+    //if (newDate < today) {
+    //  alert("ไม่สามารถย้ายไปวันก่อนวันนี้ได้");
+    //  return;
+    //}
+//
+    //// ❌ ห้ามย้ายจากวานนี้มายังวันนี้ หรือวันหลังจากนี้
+    //const isFromYesterday = oldDate.getTime() === yesterday.getTime();
+    //const isMoveToTodayOrFuture = newDate.getTime() >= today.getTime();
+//
+    //if (isFromYesterday && isMoveToTodayOrFuture) {
+    //  alert("ไม่สามารถย้ายจากวานนี้มายังวันนี้หรือวันถัดไปได้");
+    //  return;
+    //}
+//
+    //// ✅ ผ่านเงื่อนไขแล้ว
+    //setDraggedEvent(event);
+    //setNewStart(start);
+    //setNewEnd(end);
+    //setIsModalOpen(true);
   };
 
   const handleDeleteReservation = async (reservID, name) => {
@@ -1621,6 +1625,36 @@ const Booking = () => {
       alert('ออกจากระบบไม่สำเร็จ');
     }
   };
+
+  // ฟังก์ชั่นคำนวณราคา
+  const calculatePrice = (start, end) => {
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+
+    let total = 0;
+    let currentMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+
+    while (currentMinutes < endMinutes) {
+      if (currentMinutes >= 1080) { // หลัง 18:00
+        let nextMinutes = Math.min(currentMinutes + 60, endMinutes);
+        total += 600 * ((nextMinutes - currentMinutes) / 60);
+        currentMinutes = nextMinutes;
+      } else {
+        if (endMinutes > 1080 && currentMinutes + 60 > 1080) { // เศษก่อน 18:00
+          let before1800 = 1080 - currentMinutes;
+          total += (450 / 60) * before1800;
+          currentMinutes += before1800;
+        } else {
+          let nextMinutes = Math.min(currentMinutes + 60, endMinutes);
+          total += 450 * ((nextMinutes - currentMinutes) / 60);
+          currentMinutes = nextMinutes;
+        }
+      }
+    }
+    return Math.round(total * 100) / 100;
+  };
+
   return (
     <div className='booking-container'>
       <div
@@ -1844,6 +1878,41 @@ const Booking = () => {
               >
                 ดูใบจอง
               </button>
+              {!isPastOrYesterday(selectedEvent.reservDate) &&(
+                 <button
+                  onClick={() => {
+                    setEditEventData(selectedEvent);
+
+                    // สร้าง Date ของวันจอง + เวลา startTime/endTime เดิม
+                    const [startHour, startMinute] = selectedEvent.startTime.split(':').map(Number);
+                    const [endHour, endMinute] = selectedEvent.endTime.split(':').map(Number);
+                    // ใช้วันที่จองเดิม
+                    const [day, month, year] = selectedEvent.reservDate.split('/').map(Number);
+
+                    const startDate = new Date(year, month - 1, day, startHour, startMinute, 0, 0);
+                    const endDate = new Date(year, month - 1, day, endHour, endMinute, 0, 0);
+
+                    setEditNewStart(startDate);
+                    setEditNewEnd(endDate);
+                    setIsEditModalOpen(true);
+                  }}
+                  style={{
+                    padding: '6px 18px',
+                    fontSize: '18px',
+                    color: '#65000a',
+                    backgroundColor: '#d7ba80',
+                    border: 'none',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s ease',
+                    userSelect: 'none',
+                    height: '40px',
+                    fontFamily: '"Noto Sans Thai", sans-serif',
+                  }}
+                >
+                  แก้ไขการจอง
+                </button>
+              )}
               {!isPastOrYesterday(selectedEvent.reservDate) && selectedEvent.paymentMethod === 'ยังไม่ชำระเงิน' && (
                 <>
                   <button
@@ -1906,6 +1975,145 @@ const Booking = () => {
                 </Button>
             </div>
           )}
+          <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+            <Box sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              bgcolor: 'background.paper',
+              p: 4,
+              borderRadius: 2,
+              boxShadow: 24,
+              width: 400
+            }}>
+              <h2>แก้ไขการจอง</h2>
+              <div>หมายเลขการจอง: {editEventData?.reservID}</div>
+              <div>ชื่อ: {editEventData?.cusName}</div>
+              <div>
+                เวลาเดิม: {editEventData?.startTime} - {editEventData?.endTime}
+              </div>
+              <div style={{ margin: "10px 0" }}>
+                <label>วันใหม่: </label>
+                <input
+                  type="date"
+                  value={editNewStart ? moment(editNewStart).format('YYYY-MM-DD') : ""}
+                  onChange={e => {
+                    const [year, month, day] = e.target.value.split('-').map(Number);
+                    const newStart = new Date(editNewStart);
+                    const newEnd = new Date(editNewEnd);
+                  
+                    newStart.setFullYear(year, month - 1, day);
+                    newEnd.setFullYear(year, month - 1, day);
+                  
+                    setEditNewStart(newStart);
+                    setEditNewEnd(newEnd);
+                  }}
+                />
+                <span style={{ marginLeft: 10, color: "#555" }}>
+                  {editNewStart ? moment(editNewStart).format('DD/MM/YYYY') : ""}
+                </span>
+              </div>
+              <div style={{ margin: "10px 0" }}>
+                <label>เวลาเริ่ม: </label>
+                <input
+                  type="time"
+                  step="60"
+                  value={editNewStart ? moment(editNewStart).format('HH:mm') : ""}
+                  onChange={e => {
+                    const [h, m] = e.target.value.split(':').map(Number);
+                    const newStart = new Date(editNewStart);
+                    newStart.setHours(h, m, 0, 0);
+                    setEditNewStart(newStart);
+                  }}
+                />
+              </div>
+              <div style={{ margin: "10px 0" }}>
+                <label>เวลาเสร็จ: </label>
+                <input
+                  type="time"
+                  step="60"
+                  value={editNewEnd ? moment(editNewEnd).format('HH:mm') : ""}
+                  onChange={e => {
+                    const [h, m] = e.target.value.split(':').map(Number);
+                    const newEnd = new Date(editNewEnd);
+                    newEnd.setHours(h, m, 0, 0);
+                    setEditNewEnd(newEnd);
+                  }}
+                />
+              </div>
+              <div>
+                <strong>จำนวนชั่วโมง:</strong> {
+                  editNewStart && editNewEnd
+                  ? ((editNewEnd - editNewStart) / (1000 * 60 * 60)).toFixed(2)
+                  : "-"
+                } ชั่วโมง
+              </div>
+              <div>
+                <strong>ราคา:</strong> {editEventData?.price} บาท
+              </div>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                <Button variant="outlined" onClick={() => setIsEditModalOpen(false)}>ยกเลิก</Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={async () => {
+                    if (!editNewStart || !editNewEnd) {
+                      alert('กรุณาเลือกวันและเวลาเริ่ม-สิ้นสุดใหม่');
+                      return;
+                    }
+                    // เพิ่มเงื่อนไขนี้ (เปรียบเทียบกับเวลาปัจจุบัน)
+                    const now = new Date();
+                    if (editNewStart < now) {
+                      alert('ไม่สามารถย้ายไปวันหรือเวลาก่อนเวลาปัจจุบันได้');
+                      return;
+                    }
+                    // เช็คชั่วโมงเท่าเดิม
+                    const oldDuration = (
+                      (parseInt(editEventData.endTime.split(':')[0]) * 60 + parseInt(editEventData.endTime.split(':')[1]))
+                      - (parseInt(editEventData.startTime.split(':')[0]) * 60 + parseInt(editEventData.startTime.split(':')[1]))
+                    ) / 60;
+                    const newDuration = ((editNewEnd - editNewStart) / (1000 * 60 * 60));
+                    if (Math.abs(newDuration - oldDuration) > 0.01) {
+                      alert('จำนวนชั่วโมงต้องเท่าเดิม');
+                      return;
+                    }
+                    // เช็คราคาใหม่ต้องเท่าราคาเดิม
+                    const startStr = moment(editNewStart).format('HH:mm');
+                    const endStr = moment(editNewEnd).format('HH:mm');
+                    const newPrice = calculatePrice(startStr, endStr);
+                    if (Number(newPrice) !== Number(editEventData.price)) {
+                      alert(`ราคารวมต้องเท่ากับเดิม (${editEventData.price} บาท)`);
+                      return;
+                    }
+                    try {
+                      const updatedData = {
+                        reservID: editEventData.reservID,
+                        startTime: startStr,
+                        endTime: endStr,
+                        reservDate: moment(editNewStart).format('DD/MM/YYYY'),
+                        changer: user?.name || user?.username,
+                        oldStart: `${editEventData.reservDate} ${editEventData.startTime}`,
+                        oldEnd: `${editEventData.reservDate} ${editEventData.endTime}`,
+                        newStart: moment(editNewStart).format('DD/MM/YYYY HH:mm'),
+                        newEnd: moment(editNewEnd).format('DD/MM/YYYY HH:mm'),
+                        changeTime: moment().format('DD/MM/YYYY HH:mm:ss'),
+                      };
+                      await updateReservations(editEventData.reservID, updatedData);
+                      const res = await getReservations();
+                      setEvents(mapReservationsToEvents(res.data));
+                      setIsEditModalOpen(false);
+                      window.location.reload();
+                    } catch (error) {
+                      alert('อัปเดตล้มเหลว');
+                    }
+                  }}
+                >
+                  บันทึกการเปลี่ยนแปลง
+                </Button>
+              </Box>
+            </Box>
+          </Modal>
           <Modal open={isAuditOpen} onClose={() => setIsAuditOpen(false)}>
             <Box sx={{
               position: 'absolute',
