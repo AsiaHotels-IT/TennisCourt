@@ -8,7 +8,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { getReservations, getReservationById, updateReservations, deleteReservations, payReservation } from '../function/reservation';
 import Reservation from './Reservation';
 import logo from '../img/logo.png'; 
-import { Modal, Box, Button, RadioGroup, FormControlLabel, Radio, TextField } from '@mui/material';
+import { Modal, Box, Button, RadioGroup, FormControlLabel, Radio, TextField, Typography, Divider, Stack } from '@mui/material';
 import generatePayload from 'promptpay-qr';
 import {QRCodeCanvas}  from 'qrcode.react';  
 import { useNavigate } from 'react-router-dom'; 
@@ -1976,29 +1976,43 @@ const Booking = () => {
             </div>
           )}
           <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
-            <Box sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              bgcolor: 'background.paper',
-              p: 4,
-              borderRadius: 2,
-              boxShadow: 24,
-              width: 400
-            }}>
-              <h2>แก้ไขการจอง</h2>
-              <div>หมายเลขการจอง: {editEventData?.reservID}</div>
-              <div>ชื่อ: {editEventData?.cusName}</div>
-              <div>
-                เวลาเดิม: {editEventData?.startTime} - {editEventData?.endTime}
-              </div>
-              <div style={{ margin: "10px 0" }}>
-                <label>วันใหม่: </label>
-                <input
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                bgcolor: 'background.paper',
+                p: 4,
+                borderRadius: 3,
+                boxShadow: 24,
+                width: 450,
+              }}
+            >
+              <Typography variant="h6" gutterBottom fontWeight="bold">
+                แก้ไขการจอง
+              </Typography>
+            
+              <Divider sx={{ mb: 2 }} />
+            
+              <Stack spacing={1.5}>
+                <Typography variant="body1">
+                  <strong>หมายเลขการจอง:</strong> {editEventData?.reservID}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>ชื่อผู้จอง:</strong> {editEventData?.cusName}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>เวลาเดิม:</strong> {editEventData?.startTime} - {editEventData?.endTime}
+                </Typography>
+            
+                <TextField
+                  fullWidth
+                  label="วันใหม่"
                   type="date"
+                  InputLabelProps={{ shrink: true }}
                   value={editNewStart ? moment(editNewStart).format('YYYY-MM-DD') : ""}
-                  onChange={e => {
+                  onChange={(e) => {
                     const [year, month, day] = e.target.value.split('-').map(Number);
                     const newStart = new Date(editNewStart);
                     const newEnd = new Date(editNewEnd);
@@ -2010,77 +2024,78 @@ const Booking = () => {
                     setEditNewEnd(newEnd);
                   }}
                 />
-                <span style={{ marginLeft: 10, color: "#555" }}>
-                  {editNewStart ? moment(editNewStart).format('DD/MM/YYYY') : ""}
-                </span>
-              </div>
-              <div style={{ margin: "10px 0" }}>
-                <label>เวลาเริ่ม: </label>
-                <input
+          
+                <TextField
+                  fullWidth
+                  label="เวลาเริ่ม"
                   type="time"
-                  step="60"
+                  InputLabelProps={{ shrink: true }}
                   value={editNewStart ? moment(editNewStart).format('HH:mm') : ""}
-                  onChange={e => {
+                  onChange={(e) => {
                     const [h, m] = e.target.value.split(':').map(Number);
                     const newStart = new Date(editNewStart);
                     newStart.setHours(h, m, 0, 0);
                     setEditNewStart(newStart);
                   }}
                 />
-              </div>
-              <div style={{ margin: "10px 0" }}>
-                <label>เวลาเสร็จ: </label>
-                <input
+          
+                <TextField
+                  fullWidth
+                  label="เวลาเสร็จ"
                   type="time"
-                  step="60"
+                  InputLabelProps={{ shrink: true }}
                   value={editNewEnd ? moment(editNewEnd).format('HH:mm') : ""}
-                  onChange={e => {
+                  onChange={(e) => {
                     const [h, m] = e.target.value.split(':').map(Number);
                     const newEnd = new Date(editNewEnd);
                     newEnd.setHours(h, m, 0, 0);
                     setEditNewEnd(newEnd);
                   }}
                 />
-              </div>
-              <div>
-                <strong>จำนวนชั่วโมง:</strong> {
-                  editNewStart && editNewEnd
-                  ? ((editNewEnd - editNewStart) / (1000 * 60 * 60)).toFixed(2)
-                  : "-"
-                } ชั่วโมง
-              </div>
-              <div>
-                <strong>ราคา:</strong> {editEventData?.price} บาท
-              </div>
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                <Button variant="outlined" onClick={() => setIsEditModalOpen(false)}>ยกเลิก</Button>
+          
+                <Typography variant="body1">
+                  <strong>จำนวนชั่วโมง:</strong>{" "}
+                  {editNewStart && editNewEnd
+                    ? ((editNewEnd - editNewStart) / (1000 * 60 * 60)).toFixed(2)
+                    : "-"}{" "}
+                  ชั่วโมง
+                </Typography>
+                <Typography variant="body1">
+                  <strong>ราคา:</strong> {editEventData?.price} บาท
+                </Typography>
+              </Stack>
+                  
+              <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
+                <Button variant="outlined" onClick={() => setIsEditModalOpen(false)}>
+                  ยกเลิก
+                </Button>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={async () => {
                     if (!editNewStart || !editNewEnd) {
-                      alert('กรุณาเลือกวันและเวลาเริ่ม-สิ้นสุดใหม่');
+                      alert("กรุณาเลือกวันและเวลาเริ่ม-สิ้นสุดใหม่");
                       return;
                     }
-                    // เพิ่มเงื่อนไขนี้ (เปรียบเทียบกับเวลาปัจจุบัน)
                     const now = new Date();
                     if (editNewStart < now) {
-                      alert('ไม่สามารถย้ายไปวันหรือเวลาก่อนเวลาปัจจุบันได้');
+                      alert("ไม่สามารถย้ายไปวันหรือเวลาก่อนเวลาปัจจุบันได้");
                       return;
                     }
-                    // เช็คชั่วโมงเท่าเดิม
-                    const oldDuration = (
-                      (parseInt(editEventData.endTime.split(':')[0]) * 60 + parseInt(editEventData.endTime.split(':')[1]))
-                      - (parseInt(editEventData.startTime.split(':')[0]) * 60 + parseInt(editEventData.startTime.split(':')[1]))
-                    ) / 60;
-                    const newDuration = ((editNewEnd - editNewStart) / (1000 * 60 * 60));
+                    const oldDuration =
+                      (parseInt(editEventData.endTime.split(":")[0]) * 60 +
+                        parseInt(editEventData.endTime.split(":")[1]) -
+                        (parseInt(editEventData.startTime.split(":")[0]) * 60 +
+                          parseInt(editEventData.startTime.split(":")[1]))) /
+                      60;
+                    const newDuration =
+                      (editNewEnd - editNewStart) / (1000 * 60 * 60);
                     if (Math.abs(newDuration - oldDuration) > 0.01) {
-                      alert('จำนวนชั่วโมงต้องเท่าเดิม');
+                      alert("จำนวนชั่วโมงต้องเท่าเดิม");
                       return;
                     }
-                    // เช็คราคาใหม่ต้องเท่าราคาเดิม
-                    const startStr = moment(editNewStart).format('HH:mm');
-                    const endStr = moment(editNewEnd).format('HH:mm');
+                    const startStr = moment(editNewStart).format("HH:mm");
+                    const endStr = moment(editNewEnd).format("HH:mm");
                     const newPrice = calculatePrice(startStr, endStr);
                     if (Number(newPrice) !== Number(editEventData.price)) {
                       alert(`ราคารวมต้องเท่ากับเดิม (${editEventData.price} บาท)`);
@@ -2091,13 +2106,13 @@ const Booking = () => {
                         reservID: editEventData.reservID,
                         startTime: startStr,
                         endTime: endStr,
-                        reservDate: moment(editNewStart).format('DD/MM/YYYY'),
+                        reservDate: moment(editNewStart).format("DD/MM/YYYY"),
                         changer: user?.name || user?.username,
                         oldStart: `${editEventData.reservDate} ${editEventData.startTime}`,
                         oldEnd: `${editEventData.reservDate} ${editEventData.endTime}`,
-                        newStart: moment(editNewStart).format('DD/MM/YYYY HH:mm'),
-                        newEnd: moment(editNewEnd).format('DD/MM/YYYY HH:mm'),
-                        changeTime: moment().format('DD/MM/YYYY HH:mm:ss'),
+                        newStart: moment(editNewStart).format("DD/MM/YYYY HH:mm"),
+                        newEnd: moment(editNewEnd).format("DD/MM/YYYY HH:mm"),
+                        changeTime: moment().format("DD/MM/YYYY HH:mm:ss"),
                       };
                       await updateReservations(editEventData.reservID, updatedData);
                       const res = await getReservations();
@@ -2105,7 +2120,7 @@ const Booking = () => {
                       setIsEditModalOpen(false);
                       window.location.reload();
                     } catch (error) {
-                      alert('อัปเดตล้มเหลว');
+                      alert("อัปเดตล้มเหลว");
                     }
                   }}
                 >
