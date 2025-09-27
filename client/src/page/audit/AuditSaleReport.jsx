@@ -6,11 +6,9 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from "react-router-dom";
 import { printSaleReportA4 } from './printSaleReportA4';
 
-// สำหรับ format วันที่ไทยแบบ 7/31/2568
 function formatDateThaiShort(dateStr) {
   if (!dateStr) return "";
   let date;
-  // รองรับ timestamp เช่น 2025-08-05T05:56:43.500+00:00
   if (dateStr.includes('T')) {
     date = new Date(dateStr);
   } else if (dateStr.includes('/')) {
@@ -23,7 +21,35 @@ function formatDateThaiShort(dateStr) {
     date = new Date(dateStr);
   }
   if (isNaN(date)) return dateStr;
+  // แสดงวันที่ปกติ (local) แต่ปีเป็น พ.ศ.
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() + 543}`;
+}
+
+// สำหรับ format วันที่ไทยแบบ 7/31/2568
+function formatDateThaiWithTime(dateStr) {
+  if (!dateStr) return "";
+  let date;
+  if (dateStr.includes('T')) {
+    date = new Date(dateStr);
+  } else if (dateStr.includes('/')) {
+    const [day, month, year] = dateStr.split("/");
+    date = new Date(year, month - 1, day);
+  } else if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split("-");
+    date = new Date(year, month - 1, day);
+  } else {
+    date = new Date(dateStr);
+  }
+  if (isNaN(date)) return dateStr;
+  // get UTC time, not local time
+  const d = date.getUTCDate();
+  const m = date.getUTCMonth() + 1;
+  const y = date.getUTCFullYear() + 543;
+  const hh = date.getUTCHours().toString().padStart(2, "0");
+  const mm = date.getUTCMinutes().toString().padStart(2, "0");
+  const ss = date.getUTCSeconds().toString().padStart(2, "0");
+  // ถ้ามีเวลา: แสดงด้วย
+  return `${d}/${m}/${y}`;
 }
 
 const AuditSaleReport = () => {
@@ -85,14 +111,14 @@ const AuditSaleReport = () => {
     const filterData = useCallback((data) => {
       return data.filter((item) => {
         const receiptDate = parseDate(item.receiptDate);
-  
+      
         if (!receiptDate) return false;
-  
+      
         if (selectedDate) {
           return (
-            receiptDate.getDate() === selectedDate.getDate() &&
-            receiptDate.getMonth() === selectedDate.getMonth() &&
-            receiptDate.getFullYear() === selectedDate.getFullYear()
+            receiptDate.getUTCDate() === selectedDate.getUTCDate() &&
+            receiptDate.getUTCMonth() === selectedDate.getUTCMonth() &&
+            receiptDate.getUTCFullYear() === selectedDate.getUTCFullYear()
           );
         }
         return true;
@@ -117,7 +143,7 @@ const AuditSaleReport = () => {
 
     const reportRows = filteredReservation.map((item, i) => ({
       idx: i + 1,
-      receiptDate: item.receiptDate ? formatDateThaiShort(item.receiptDate) : "",
+      receiptDate: item.receiptDate ? formatDateThaiWithTime(item.receiptDate) : "",
       receiptNumber: item.receiptNumber || "",
       cusName: item.cusName,
       cusTel: item.cusTel,
@@ -125,7 +151,7 @@ const AuditSaleReport = () => {
       reservID: item.reservID || "",
       bookDate: item.bookDate ? formatDateThaiShort(item.bookDate) : "",
       time: `${item.startTime || ""}-${item.endTime || ""}`,
-      hour: calculateHours(item.startTime, item.endTime), // เพิ่มการคำนวณชั่วโมง
+      hour: calculateHours(item.startTime, item.endTime),
       price: item.price ? item.price.toLocaleString() : "",
       cash: item.paymentMethod === "เงินสด" ? (item.price ? item.price.toLocaleString() : "") : "",
       transfer: item.paymentMethod === "QR" ? (item.price ? item.price.toLocaleString() : "") : "",
@@ -168,26 +194,17 @@ const AuditSaleReport = () => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontWeight: 700 }}>รายงานการขายเทนนิส ประจำวันที่</h2>
           <span style={{ fontSize: 18 }}>
-            {filteredReservation[0] && filteredReservation[0].receiptDate ? (() => {
-              const dateStr = filteredReservation[0].receiptDate;
-              let date;
-              if (dateStr.includes('T')) {
-                date = new Date(dateStr);
-              } else if (dateStr.includes('/')) {
-                const [day, month, year] = dateStr.split("/");
-                date = new Date(year, month - 1, day);
-              } else if (dateStr.includes('-')) {
-                const [year, month, day] = dateStr.split("-");
-                date = new Date(year, month - 1, day);
-              } else {
-                date = new Date(dateStr);
-              }
-              if (isNaN(date)) return dateStr;
-              const d = date.getDate().toString();
-              const m = (date.getMonth() + 1).toString();
-              const y = (date.getFullYear()+543).toString();
-              return `${d}/${m}/${y}`;
-            })() : "-"}
+            <span style={{ fontSize: 18 }}>
+              {filteredReservation[0] && filteredReservation[0].receiptDate ? (() => {
+                const dateStr = filteredReservation[0].receiptDate;
+                let date = new Date(dateStr);
+                if (isNaN(date)) return dateStr;
+                const d = date.getUTCDate().toString();
+                const m = (date.getUTCMonth() + 1).toString();
+                const y = (date.getUTCFullYear() + 543).toString();
+                return `${d}/${m}/${y}`;
+              })() : "-"}
+            </span>
           </span>
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: 12 }}>
             <span>7.00-18.00 &nbsp;&nbsp;&nbsp;&nbsp; 450/ชม.</span>
