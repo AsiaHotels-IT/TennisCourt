@@ -17,7 +17,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - MONGO_URI=mongodb://dev:AsiadevBkk@mongo:27017/tennis
+      - MONGO_URI=mongodb://dev:AsiadevBkk@mongo:27017/tennis?authSource=admin
     depends_on:
       - mongo
     working_dir: /usr/src/app
