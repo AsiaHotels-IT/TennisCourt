@@ -1659,6 +1659,7 @@ const AuditBooking = () => {
     return Math.round(total * 100) / 100;
   };
   
+  
   return (
     <div className='booking-container'>
       <div

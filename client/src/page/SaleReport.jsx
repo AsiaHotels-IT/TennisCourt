@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from "react-router-dom";
 import { printSaleReportA4 } from '../page/audit/printSaleReportA4';
+import * as XLSX from "xlsx"; 
 
 function formatDateThaiShort(dateStr) {
   if (!dateStr) return "";
@@ -315,6 +316,51 @@ const SaleReport = () => {
       </div>
     );
 
+    const exportExcel = () => {
+        // กำหนด header ที่ต้องการ (ภาษาไทย)
+        const header = [
+          "ลำดับ",
+          "วันที่ใบเสร็จ",
+          "เลขที่ใบเสร็จ",
+          "ชื่อลูกค้า",
+          "เบอร์โทร",
+          "เลขใบจอง",
+          "วันที่จอง",
+          "เวลาจอง",
+          "ชั่วโมงจอง",
+          "จำนวนเงิน",
+          "เงินสด",
+          "QR",
+          "โอนผ่านธนาคาร"
+        ];
+        // แปลง reportRows เป็น array ของ array
+        const rows = reportRows.map(row => [
+          row.idx,
+          row.receiptDate,
+          row.receiptNumber,
+          row.cusName,
+          row.cusTel,
+          row.reservID,
+          row.reservDate,
+          row.time,
+          row.hour,
+          row.price,
+          row.cash,
+          row.transfer,
+          row.card
+        ]);
+        // รวม header + rows
+        const wsData = [header, ...rows];
+    
+        // สร้าง worksheet และ workbook
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "SaleReport");
+    
+        // ดาวน์โหลดไฟล์
+        XLSX.writeFile(wb, `SaleReport${selectedDate}.xlsx`);
+      };
+
   return (
     <div className="sale-report">
           <div className="page-header" >
@@ -358,18 +404,7 @@ const SaleReport = () => {
                 height: '40px',
                 fontFamily: 'Calibri, sans-serif',
               }}
-              onClick={() => {
-                printSaleReportA4({
-                  saleDate: filteredReservation[0] ? filteredReservation[0].receiptDate : "-",
-                  reportRows,
-                  totalBookingAmount,
-                  totalCash,
-                  totalTransfer,
-                  totalCard,
-                  cashSummaryRows,
-                  cashTotalSum,
-                });
-              }}
+              onClick={() => exportExcel()}
             >พิมพ์รายงาน</button>
           </div>
     
