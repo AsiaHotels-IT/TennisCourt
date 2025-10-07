@@ -317,49 +317,75 @@ const SaleReport = () => {
     );
 
     const exportExcel = () => {
-        // กำหนด header ที่ต้องการ (ภาษาไทย)
-        const header = [
-          "ลำดับ",
-          "วันที่ใบเสร็จ",
-          "เลขที่ใบเสร็จ",
-          "ชื่อลูกค้า",
-          "เบอร์โทร",
-          "เลขใบจอง",
-          "วันที่จอง",
-          "เวลาจอง",
-          "ชั่วโมงจอง",
-          "จำนวนเงิน",
-          "เงินสด",
-          "QR",
-          "โอนผ่านธนาคาร"
-        ];
-        // แปลง reportRows เป็น array ของ array
-        const rows = reportRows.map(row => [
-          row.idx,
-          row.receiptDate,
-          row.receiptNumber,
-          row.cusName,
-          row.cusTel,
-          row.reservID,
-          row.reservDate,
-          row.time,
-          row.hour,
-          row.price,
-          row.cash,
-          row.transfer,
-          row.card
-        ]);
-        // รวม header + rows
-        const wsData = [header, ...rows];
+      // กำหนด header ที่ต้องการ (ภาษาไทย)
+      const header = [
+        "ลำดับ",
+        "วันที่ใบเสร็จ",
+        "เลขที่ใบเสร็จ",
+        "ชื่อลูกค้า",
+        "เบอร์โทร",
+        "เลขใบจอง",
+        "วันที่จอง",
+        "เวลาจอง",
+        "ชั่วโมงจอง",
+        "จำนวนเงิน",
+        "เงินสด",
+        "QR",
+        "โอนผ่านธนาคาร"
+      ];
     
-        // สร้าง worksheet และ workbook
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "SaleReport");
+      // แปลง reportRows เป็น array ของ array
+      const rows = reportRows.map(row => [
+        row.idx,
+        row.receiptDate,
+        row.receiptNumber,
+        row.cusName,
+        row.cusTel,
+        row.reservID,
+        row.reservDate,
+        row.time,
+        row.hour,
+        row.price,
+        row.cash,
+        row.transfer,
+        row.card
+      ]);
     
-        // ดาวน์โหลดไฟล์
-        XLSX.writeFile(wb, `SaleReport${selectedDate}.xlsx`);
-      };
+      // คำนวณยอดรวม (sum เฉพาะคอลัมน์ตัวเลข)
+      const sum = (field) => reportRows.reduce((total, row) => total + (parseFloat(row[field]) || 0), 0);
+    
+      // แปลงเป็น string แบบมี comma คั่นหลักพัน
+      const formatNumber = (num) => num.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+      const totalRow = [
+        "", // ลำดับ (คอลัมน์แรก)
+        "",    // วันที่ใบเสร็จ
+        "",    // เลขที่ใบเสร็จ
+        "",    // ชื่อลูกค้า
+        "",    // เบอร์โทร
+        "",    // เลขใบจอง
+        "",    // วันที่จอง
+        "",    // เวลาจอง
+        "รวมทั้งสิ้น",
+        formatNumber(sum("price")),
+        formatNumber(sum("cash")),
+        formatNumber(sum("transfer")),
+        formatNumber(sum("card"))
+      ];
+    
+      // รวม header + rows + totalRow
+      const wsData = [header, ...rows, totalRow];
+    
+      // สร้าง worksheet และ workbook
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "SaleReport");
+    
+      // ดาวน์โหลดไฟล์
+      XLSX.writeFile(wb, `SaleReport${selectedDate}.xlsx`);
+    };
+    
+    
 
   return (
     <div className="sale-report">
@@ -404,8 +430,35 @@ const SaleReport = () => {
                 height: '40px',
                 fontFamily: 'Calibri, sans-serif',
               }}
-              onClick={() => exportExcel()}
+              onClick={() => {
+                printSaleReportA4({
+                  saleDate: filteredReservation[0] ? filteredReservation[0].receiptDate : "-",
+                  reportRows,
+                  totalBookingAmount,
+                  totalCash,
+                  totalTransfer,
+                  totalCard,
+                  cashSummaryRows,
+                  cashTotalSum,
+                });
+              }}
             >พิมพ์รายงาน</button>
+            <button
+              style={{
+                padding: '6px 18px',
+                fontSize: '16px',
+                color: '#65000a',
+                backgroundColor: '#d7ba80',
+                border: 'none',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease',
+                userSelect: 'none',
+                height: '40px',
+                fontFamily: 'Calibri, sans-serif',
+              }}
+              onClick={() => exportExcel()}
+            >ดาวน์โหลดไฟล์</button>
           </div>
     
           <div className="print-a4-area" style={{ margin: "18px 0" }}>

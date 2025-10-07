@@ -3,9 +3,9 @@ import { getReservations, listCancelReservation } from "../../function/reservati
 import "./AuditSaleReport.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { addMonths } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { printVatReportA4 } from './printVatReportA4';
+import * as XLSX from "xlsx";
 
 // สำหรับ format วันที่ไทยแบบ วัน/เดือน/ปี+543
 function formatDateThaiShort(dateStr) {
@@ -31,8 +31,6 @@ function formatDateThaiShort(dateStr) {
 }
 
 // --- ฟังก์ชันเปรียบเทียบเลขใบกำกับภาษีให้เรียงถูกต้อง --
-// ถ้า receiptNumber มีตัวอักษร (เช่น AH0001) จะเรียงตามลำดับตัวเลขด้านหลัง
-// แต่ถ้าเป็นเลขล้วนก็เรียงปกติ
 function receiptNumberSort(a, b) {
   const getNum = (str) => {
     if (!str) return 0;
@@ -41,7 +39,6 @@ function receiptNumberSort(a, b) {
   };
   const numA = getNum(a.receiptNumber);
   const numB = getNum(b.receiptNumber);
-  // ถ้าเลขเท่ากัน ให้เรียงตาม receiptNumber string เพื่อป้องกันกรณี AH0001 กับ BH0001
   if (numA === numB) return (a.receiptNumber || "").localeCompare(b.receiptNumber || "");
   return numA - numB;
 }
@@ -49,9 +46,7 @@ function receiptNumberSort(a, b) {
 const VatReport = () => {
   const [reservation, setReservation] = useState([]);
   const [cancelReservation, setCancelReservation] = useState([]);
-  const [selectedData, setSelectedData] = useState([]);
   const [selectedType, setSelectedType] = useState("booking");
-  // กำหนดค่าเริ่มต้นเป็นเดือนนี้
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today);
   const [searchTerm, setSearchTerm] = useState(""); // สำหรับค้นหา
@@ -69,9 +64,8 @@ const VatReport = () => {
     setCancelReservation(res2.data);
   };
 
-   const parseReceiptDate = (dateStr) => {
+  const parseReceiptDate = (dateStr) => {
     if (!dateStr) return null;
-    // ISO datetime: 2025-08-05T05:54:29.471+00:00
     if (dateStr.includes('T')) {
       return new Date(dateStr);
     } else if (dateStr.includes('/')) {
@@ -102,7 +96,6 @@ const VatReport = () => {
     });
   }, [selectedMonth]);
 
-  // เรียงเลขใบกำกับภาษีจากน้อยไปมาก (แบบใหม่)
   const sortByReceiptNumberAsc = arr => {
     return [...arr].sort(receiptNumberSort);
   };
@@ -124,12 +117,11 @@ const VatReport = () => {
   const totalCancelCount = filteredCancelReservation.length;
   const totalBookingAmount = filteredReservation.reduce((sum, item) => sum + (item.price || 0), 0);
   const totalCancelAmount = filteredCancelReservation.reduce((sum, item) => sum + (item.price || 0), 0);
-  const netSales = totalBookingAmount;
 
-  // 3. เตรียมแถวแสดงในตาราง (VAT)
+  // 3. เตรียมแถวแสดงในตาราง (VAT) --- เก็บทั้งเลขจริงและ string format ---
   const VAT_RATE = 0.07;
   const reportRows = filteredReservation.map((item, i) => {
-    const total = item.price || 0;
+    const total = Number(item.price || 0);
     const beforeVat = total / (1 + VAT_RATE);
     const vat = total - beforeVat;
     return {
@@ -139,28 +131,22 @@ const VatReport = () => {
       cusName: item.cusName,
       reservID: item.reservID || "",
       branch: item.branch || '',
-      beforeVat: beforeVat ? beforeVat.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
-      vat: vat ? vat.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
-      total: total ? total.toLocaleString(undefined, {minimumFractionDigits:2}) : '',
+      beforeVat,
+      vat,
+      total,
+      beforeVatStr: beforeVat.toLocaleString(undefined, {minimumFractionDigits:2}),
+      vatStr: vat.toLocaleString(undefined, {minimumFractionDigits:2}),
+      totalStr: total.toLocaleString(undefined, {minimumFractionDigits:2}),
     };
-  }).filter(row => row.receiptNumber.trim() !== ""); // กรองเฉพาะแถวที่มีเลขใบกำกับภาษี
+  }).filter(row => row.receiptNumber.trim() !== "");
 
-  // รวมยอด
-  // ป้องกัน NaN: แปลง string ที่มี , เป็นตัวเลข
-  const safeNumber = val => {
-    if (val === undefined || val === null || val === "") return 0;
-    if (typeof val === "string") {
-      const num = Number(val.replace(/,/g, ""));
-      return isNaN(num) ? 0 : num;
-    }
-    return isNaN(Number(val)) ? 0 : Number(val);
-  };
-  const sumBeforeVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.beforeVat), 0);
-  const sumVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.vat), 0);
-  const sumTotalRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.total), 0);
-  const sumBeforeVat = Number(sumBeforeVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-  const sumVat = Number(sumVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-  const sumTotal = Number(sumTotalRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  // รวมยอดโดยใช้เลขจริง
+  const sumBeforeVatRaw = reportRows.reduce((sum, r) => sum + r.beforeVat, 0);
+  const sumVatRaw = reportRows.reduce((sum, r) => sum + r.vat, 0);
+  const sumTotalRaw = reportRows.reduce((sum, r) => sum + r.total, 0);
+  const sumBeforeVat = sumBeforeVatRaw.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumVat = sumVatRaw.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumTotal = sumTotalRaw.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 
   // 4. เตรียมสรุปเงินสดย่อย (แบงค์/เหรียญ)
   const [cashSummaryRows, setCashSummaryRows] = useState([
@@ -199,13 +185,10 @@ const VatReport = () => {
       <div style={{ textAlign: "center", marginBottom: 12 }}>
         <div style={{ fontWeight: 700, fontSize: 20 }}>บริษัท เอเชียโฮเต็ล จำกัด (มหาชน)</div>
         <div style={{ fontWeight: 700, fontSize: 18 }}>รายงานภาษีขาย</div>
-        <div style={{fontWeight:700,fontSize:18}}>เดือนภาษี {(() => {
-              const thMonths = [
-                'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-              ];
-              return thMonths[selectedMonth.getMonth()];
-            })()} ปี {selectedMonth.getFullYear() + 543}</div>
+        <div style={{ fontWeight:700, fontSize:18 }}>เดือนภาษี {(() => {
+          const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+          return thMonths[selectedMonth.getMonth()];
+        })()} ปี {selectedMonth.getFullYear() + 543}</div>
         <div style={{ marginTop: 8, fontSize: 15 }}>ชื่อผู้ประกอบการ บริษัท เอเชียโฮเต็ล จำกัด (มหาชน)</div>
         <div style={{ fontSize: 15 }}>ที่อยู่สถานประกอบการ 296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพฯ 10400</div>
         <div style={{ fontSize: 15 }}>เลขประจำตัวผู้เสียภาษี 0107535000346</div>
@@ -226,8 +209,11 @@ const VatReport = () => {
         </thead>
         <tbody>
           {pagedRows.map((row, i) => {
-            // ตรวจสอบสถานะและกำหนดสีพื้นหลัง
             const highlight = row.status && row.status === "ยกเลิก" ? { backgroundColor: "#f8d7da" } : {};
+            // กำหนดให้ทศนิยม 2 หลักและมี comma
+            const beforeVatStr = Number(row.beforeVat).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+            const vatStr = Number(row.vat).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+            const totalStr = Number(row.total).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
             return (
               <tr key={i} style={highlight}>
                 <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.idx}</td>
@@ -236,17 +222,9 @@ const VatReport = () => {
                 <td style={{ border: "1px solid #bbb" }}>{row.cusName}</td>
                 <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{'-'}</td>
                 <td style={{ border: "1px solid #bbb", textAlign: "center" }}>{row.branch}</td>
-                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
-                  isNaN(Number(row.beforeVat.replace(/,/g, '')))
-                    ? '0.00'
-                    : Number(row.beforeVat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
-                }</td>
-                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{
-                  isNaN(Number(row.vat.replace(/,/g, '')))
-                    ? '0.00'
-                    : Number(row.vat.replace(/,/g, '')).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
-                }</td>
-                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{row.total}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{beforeVatStr}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{vatStr}</td>
+                <td style={{ border: "1px solid #bbb", textAlign: "right", paddingRight: 8 }}>{totalStr}</td>
               </tr>
             );
           })}
@@ -254,13 +232,30 @@ const VatReport = () => {
         <tfoot>
           <tr style={{ background: "#f7f5ee" }}>
             <td colSpan={6} style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>รวมทั้งสิ้น</td>
-            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>{sumBeforeVat.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>{sumVat.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>{sumTotal.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>
+              {
+                reportRows
+                  .reduce((sum, r) => sum + Number(Number(r.beforeVat).toFixed(2)), 0)
+                  .toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+              }
+            </td>
+            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>
+              {
+                reportRows
+                  .reduce((sum, r) => sum + Number(Number(r.vat).toFixed(2)), 0)
+                  .toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+              }
+            </td>
+            <td style={{ textAlign: "right", fontWeight: "bold", paddingRight: 8, border: "1px solid #bbb" }}>
+              {
+                reportRows
+                  .reduce((sum, r) => sum + Number(Number(r.total).toFixed(2)), 0)
+                  .toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})
+              }
+            </td>
           </tr>
         </tfoot>
       </table>
-      {/* Pagination controls */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <button disabled={page === 1} onClick={() => setPage(page - 1)} style={{ padding: '6px 18px', borderRadius: '20px', border: 'none', background: '#d7ba80', color: '#65000a', fontSize: 16, cursor: page === 1 ? 'not-allowed' : 'pointer' }}>ก่อนหน้า</button>
         <span>หน้า {page} / {totalPages}</span>
@@ -268,6 +263,82 @@ const VatReport = () => {
       </div>
     </div>
   );
+
+  // ฟังก์ชัน export รายงานเป็นไฟล์ Excel (ใช้เลขจริง ไม่ใช้ string)
+  const exportToExcel = () => {
+    const header = [
+      "ลำดับ",
+      "วันที่",
+      "เลขที่ใบกำกับภาษี",
+      "ชื่อลูกค้า",
+      "เลขประจำตัวผู้เสียภาษี",
+      "สาขา",
+      "มูลค่าก่อนภาษี",
+      "ภาษีมูลค่าเพิ่ม",
+      "รวมทั้งสิ้น"
+    ];
+  
+    const rows = reportRows.map((row) => [
+      row.idx,
+      row.receiptDate,
+      row.receiptNumber,
+      row.cusName,
+      "-", // ยังไม่มีเลขประจำตัวผู้เสียภาษี
+      row.branch,
+      Number(row.beforeVat).toFixed(2),
+      Number(row.vat).toFixed(2),
+      Number(row.total).toFixed(2)
+    ]);
+  
+    // รวมยอดแต่ละคอลัมน์แบบ 2 หลัก
+    const sumByTwoDigits = (rows, field) =>
+      rows.reduce((sum, r) => sum + Number(Number(r[field]).toFixed(2)), 0);
+  
+    const formatNumber = (num) =>
+      num.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  
+    const sumRow = [
+      "รวมทั้งสิ้น",
+      "", "", "", "", "",
+      formatNumber(sumByTwoDigits(reportRows, "beforeVat")),
+      formatNumber(sumByTwoDigits(reportRows, "vat")),
+      formatNumber(sumByTwoDigits(reportRows, "total"))
+    ];
+  
+    const data = [
+      header,
+      ...rows,
+      sumRow
+    ];
+  
+    const ws = XLSX.utils.aoa_to_sheet(data);
+  
+    // ตั้ง cell type เป็นตัวเลข 2 ตำแหน่ง เฉพาะคอลัมน์ G, H, I
+    for(let i = 1; i <= rows.length + 1; i++) { // +1 เพราะรวมแถว sumRow
+      ['G', 'H', 'I'].forEach((col) => {
+        const cell = ws[`${col}${i+1}`]; // +1 เพราะ header อยู่แถวแรก
+        if (cell && !isNaN(Number(cell.v))) {
+          cell.t = 'n';
+          cell.z = '#,##0.00';
+          cell.v = Number(cell.v);
+        }
+      });
+    }
+  
+    // สร้าง workbook และเพิ่ม worksheet
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "VatReport");
+  
+    const thMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const fileMonth = thMonths[selectedMonth.getMonth()];
+    const fileYear = selectedMonth.getFullYear() + 543;
+    const fileName = `VAT_Report_${fileMonth}_${fileYear}.xlsx`;
+  
+    XLSX.writeFile(wb, fileName);
+  };
 
   return (
     <div className="sale-report">
@@ -325,13 +396,28 @@ const VatReport = () => {
             });
           }}
         >พิมพ์รายงาน</button>
+        <button
+          style={{
+            padding: '6px 18px',
+            fontSize: '16px',
+            color: '#65000a',
+            backgroundColor: '#d7ba80',
+            border: 'none',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease',
+            userSelect: 'none',
+            height: '40px',
+            fontFamily: 'Calibri, sans-serif',
+          }}
+          onClick={exportToExcel}
+        >ดาวน์โหลดไฟล์</button>
       </div>
 
       {/* --- ส่วนแสดงรายงานสำหรับ A4 --- */}
       <div className="print-a4-area" style={{ margin: "18px 0" }}>
         {renderA4Report()}
       </div>
-      {/* --- END --- */}
     </div>
   );
 };

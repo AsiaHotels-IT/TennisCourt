@@ -2,8 +2,8 @@ export function printVatReportA4({
   saleDate,
   reportRows = [],
 }) {
-  // คำนวณรวมยอด
-   const safeNumber = val => {
+  // ฟังก์ชันแปลงค่าให้ปลอดภัย
+  const safeNumber = val => {
     if (val === undefined || val === null || val === "") return 0;
     if (typeof val === "string") {
       const num = Number(val.replace(/,/g, ""));
@@ -11,12 +11,14 @@ export function printVatReportA4({
     }
     return isNaN(Number(val)) ? 0 : Number(val);
   };
-  const sumBeforeVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.beforeVat), 0);
-  const sumVatRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.vat), 0);
-  const sumTotalRaw = reportRows.reduce((sum, r) => sum + safeNumber(r.total), 0);
+
+  // ปัดทศนิยม 2 หลักก่อนรวมยอด
+  const sumBeforeVatRaw = reportRows.reduce((sum, r) => sum + Number(safeNumber(r.beforeVat).toFixed(2)), 0);
+  const sumVatRaw       = reportRows.reduce((sum, r) => sum + Number(safeNumber(r.vat).toFixed(2)), 0);
+  const sumTotalRaw     = reportRows.reduce((sum, r) => sum + Number(safeNumber(r.total).toFixed(2)), 0);
   const sumBeforeVat = Number(sumBeforeVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-  const sumVat = Number(sumVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-  const sumTotal = Number(sumTotalRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumVat      = Number(sumVatRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sumTotal    = Number(sumTotalRaw).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 
   const printWindow = window.open('', '', 'width=900,height=1200');
   printWindow.document.write(`
@@ -70,12 +72,12 @@ export function printVatReportA4({
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 12px;
-            font-size: 10px; /* ลดขนาดฟ้อนตาราง */
+            font-size: 10px;
           }
           th, td {
             border: 1px solid #bbb;
             padding: 5px 3px;
-            font-size: 10px; /* ลดขนาดฟ้อนใน cell */
+            font-size: 10px;
           }
           th {
             background: #f3f3f3;
@@ -92,79 +94,6 @@ export function printVatReportA4({
           .highlight {
             background: #f7f0cd;
           }
-          /* summary cash section */
-          .summary-flex {
-            display: flex;
-            gap: 40px;
-            margin-top: 30px;
-          }
-          .summary-cash {
-            flex: 1;
-          }
-          .summary-cash-row {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            width: 50%;
-          }
-          .summary-cash-title {
-            font-weight: bold;
-            margin-bottom: 6px;
-          }
-          .summary-cash-total {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
-            border-top: 1px solid #000;
-            border-bottom: 2px double #000;
-          }
-          .summary-cash-amount {
-            font-weight: bold;
-            background: #f7f0cd;
-            padding: 2px 14px;
-            border-radius: 2px;
-          }
-          .summary-cash-table {
-            width: 50%;
-            border-collapse: collapse;
-          }
-          .summary-cash-table th,
-          .summary-cash-table td {
-            border: 1px solid #bbb;
-            font-size: 12px;
-            padding: 5px 3px;
-          }
-          .summary-cash-table-total-label {
-            text-align: center;
-            font-weight: bold;
-            border: 1px solid #bbb;
-          }
-          .summary-cash-table-total-cell {
-            border: 1px solid #bbb;
-            background: #f7f0cd;
-            text-align: center;
-            font-weight: bold;
-          }
-          .summary-sign {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-          }
-          .sign-inner {
-            margin-top: 30px;
-            margin-bottom: 18px;
-          }
-          .sign-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 50%;
-          }
-          .sign-bottom {
-            margin-top: 30px;
-          }
         </style>
       </head>
       <body>
@@ -179,7 +108,6 @@ export function printVatReportA4({
               ];
               return thMonths[new Date().getMonth()];
             })()} ปี ${new Date().getFullYear() + 543}</div>
-            
           </div>
           <div style="margin-top: 30px; text-align: left;">
             <div style="margin-top:8px;font-size:15px;">ชื่อผู้ประกอบการ บริษัท เอเชียโฮเต็ล จำกัด (มหาชน)</div>
@@ -226,9 +154,9 @@ export function printVatReportA4({
             <tfoot>
               <tr>
                 <td colspan="6" style="text-align: right; font-weight: bold; padding-right: 8px; border: 1px solid #bbb;">รวมทั้งสิ้น</td>
-                <td class="amount-cell">${sumBeforeVat.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                <td class="amount-cell">${sumVat.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                <td class="amount-cell">${sumTotal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                <td class="amount-cell">${sumBeforeVat}</td>
+                <td class="amount-cell">${sumVat}</td>
+                <td class="amount-cell">${sumTotal}</td>
               </tr>
             </tfoot>
           </table>
