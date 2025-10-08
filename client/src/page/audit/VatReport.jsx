@@ -393,6 +393,7 @@ const VatReport = () => {
               totalCard,
               cashSummaryRows,
               cashTotalSum,
+              reportMonth: selectedMonth, // เพิ่มบรรทัดนี้
             });
           }}
         >พิมพ์รายงาน</button>

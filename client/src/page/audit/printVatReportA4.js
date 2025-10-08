@@ -1,6 +1,7 @@
 export function printVatReportA4({
   saleDate,
   reportRows = [],
+  reportMonth,
 }) {
   // ฟังก์ชันแปลงค่าให้ปลอดภัย
   const safeNumber = val => {
@@ -11,6 +12,15 @@ export function printVatReportA4({
     }
     return isNaN(Number(val)) ? 0 : Number(val);
   };
+
+  const getThaiMonthYear = (date) => {
+    const thMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    return `${thMonths[date.getMonth()]} ปี ${date.getFullYear() + 543}`;
+  };
+  
 
   // ปัดทศนิยม 2 หลักก่อนรวมยอด
   const sumBeforeVatRaw = reportRows.reduce((sum, r) => sum + Number(safeNumber(r.beforeVat).toFixed(2)), 0);
@@ -101,14 +111,16 @@ export function printVatReportA4({
           <div style="text-align:center;margin-bottom:12px;">
             <div style="font-weight:700;font-size:20px;">บริษัท เอเชียโฮเต็ล จำกัด (มหาชน)</div>
             <div style="font-weight:700;font-size:18px;">รายงานภาษีขาย</div>
-            <div style="font-weight:400;font-size:16px;">เดือนภาษี ${(() => {
-              const thMonths = [
-                'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-              ];
-              return thMonths[new Date().getMonth()];
-            })()} ปี ${new Date().getFullYear() + 543}</div>
-          </div>
+            <div style="font-weight:400;font-size:16px;">
+              เดือนภาษี ${reportMonth ? getThaiMonthYear(new Date(reportMonth)) : (() => {
+                // fallback กรณีไม่ได้ส่ง reportMonth
+                const thMonths = [
+                  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+                ];
+                return thMonths[new Date().getMonth()] + " ปี " + (new Date().getFullYear() + 543);
+              })()}
+            </div>
           <div style="margin-top: 30px; text-align: left;">
             <div style="margin-top:8px;font-size:15px;">ชื่อผู้ประกอบการ บริษัท เอเชียโฮเต็ล จำกัด (มหาชน)</div>
             <div style="margin-top:8px;font-size:15px;">ที่อยู่สถานประกอบการ 296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพฯ 10400</div>
