@@ -126,52 +126,72 @@ export function printVatReportA4({
             <div style="margin-top:8px;font-size:15px;">ที่อยู่สถานประกอบการ 296 ถนนพญาไท แขวงถนนเพชรบุรี เขตราชเทวี กรุงเทพฯ 10400</div>
             <div style="margin-top:8px;margin-bottom:10px;font-size:15px;">เลขประจำตัวผู้เสียภาษี 0107535000346</div>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>ลำดับ</th>
-                <th>วันที่</th>
-                <th>เลขที่ใบกำกับภาษี</th>
-                <th>ชื่อลูกค้า</th>
-                <th>เลขประจำตัวผู้เสียภาษี</th>
-                <th>สาขา</th>
-                <th>มูลค่าก่อนภาษี</th>
-                <th>ภาษีมูลค่าเพิ่ม</th>
-                <th>รวมทั้งสิ้น</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${
-                reportRows.map(row => {
-                  const formatNum = val => {
-                    const num = Number((val || '').toString().replace(/,/g, ''));
-                    return isNaN(num) ? '0.00' : num.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-                  };
-                  return `
-                    <tr>
-                      <td style="text-align: right;">${row.idx}</td>
-                      <td style="text-align: right;">${row.receiptDate || ''}</td>
-                      <td style="text-align: left;">${row.receiptNumber || ''}</td>
-                      <td>${row.cusName || ''}</td>
-                      <td style="text-align: right;">${''}</td>
-                      <td style="text-align: right;">${row.branch || ''}</td>
-                      <td style="text-align: right;">${formatNum(row.beforeVat)}</td>
-                      <td style="text-align: right;">${formatNum(row.vat)}</td>
-                      <td style="text-align: right;">${formatNum(row.total)}</td>
-                    </tr>
-                  `;
-                }).join('')
-              }
-            </tbody>
-            <tfoot>
+          ${(() => {
+            const totalRow = `
               <tr>
                 <td colspan="6" style="text-align: right; font-weight: bold; padding-right: 8px; border: 1px solid #bbb;">รวมทั้งสิ้น</td>
                 <td class="amount-cell">${sumBeforeVat}</td>
                 <td class="amount-cell">${sumVat}</td>
                 <td class="amount-cell">${sumTotal}</td>
               </tr>
-            </tfoot>
-          </table>
+            `;
+
+            const paginatedRows = reportRows.map(row => {
+              const formatNum = val => {
+                const num = Number((val || '').toString().replace(/,/g, ''));
+                return isNaN(num) ? '0.00' : num.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+              };
+              return `
+                <tr>
+                  <td style="text-align: right;">${row.idx}</td>
+                  <td style="text-align: right;">${row.receiptDate || ''}</td>
+                  <td style="text-align: left;">${row.receiptNumber || ''}</td>
+                  <td>${row.cusName || ''}</td>
+                  <td style="text-align: right;">${''}</td>
+                  <td style="text-align: right;">${row.branch || ''}</td>
+                  <td style="text-align: right;">${formatNum(row.beforeVat)}</td>
+                  <td style="text-align: right;">${formatNum(row.vat)}</td>
+                  <td style="text-align: right;">${formatNum(row.total)}</td>
+                </tr>
+              `;
+            });
+
+            const rowsPerPage = 39; // Adjust rows per page as needed
+            const totalPages = Math.ceil(paginatedRows.length / rowsPerPage);
+            let paginatedContent = '';
+
+            for (let i = 0; i < totalPages; i++) {
+              const start = i * rowsPerPage;
+              const end = start + rowsPerPage;
+              const rows = paginatedRows.slice(start, end).join('');
+              const isLastPage = i === totalPages - 1;
+
+              paginatedContent += `
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ลำดับ</th>
+                      <th>วันที่</th>
+                      <th>เลขที่ใบกำกับภาษี</th>
+                      <th>ชื่อลูกค้า</th>
+                      <th>เลขประจำตัวผู้เสียภาษี</th>
+                      <th>สาขา</th>
+                      <th>มูลค่าก่อนภาษี</th>
+                      <th>ภาษีมูลค่าเพิ่ม</th>
+                      <th>รวมทั้งสิ้น</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows}
+                    ${isLastPage ? totalRow : ''}
+                  </tbody>
+                </table>
+                ${!isLastPage ? '<div style="page-break-after: always;"></div>' : ''}
+              `;
+            }
+
+            return paginatedContent;
+          })()}
         </div>
         <script>
           window.onload = function () {
