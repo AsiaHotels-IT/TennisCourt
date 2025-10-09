@@ -156,16 +156,21 @@ export function printVatReportA4({
               `;
             });
 
-            const rowsPerPage = 39; // Adjust rows per page as needed
-            const totalPages = Math.ceil(paginatedRows.length / rowsPerPage);
+            const rowsFirstPage = 39;
+            const rowsOtherPage = 48;
             let paginatedContent = '';
+            let page = 0;
+            let start = 0;
 
-            for (let i = 0; i < totalPages; i++) {
-              const start = i * rowsPerPage;
-              const end = start + rowsPerPage;
-              const rows = paginatedRows.slice(start, end).join('');
-              const isLastPage = i === totalPages - 1;
-
+            while (start < paginatedRows.length) {
+              let end;
+              if (page === 0) {
+                end = start + rowsFirstPage;
+              } else {
+                end = start + rowsOtherPage;
+              }
+              const rowsThisPage = paginatedRows.slice(start, end).join('');
+              const isLastPage = end >= paginatedRows.length;
               paginatedContent += `
                 <table>
                   <thead>
@@ -182,12 +187,14 @@ export function printVatReportA4({
                     </tr>
                   </thead>
                   <tbody>
-                    ${rows}
+                    ${rowsThisPage}
                     ${isLastPage ? totalRow : ''}
                   </tbody>
                 </table>
                 ${!isLastPage ? '<div style="page-break-after: always;"></div>' : ''}
               `;
+              start = end;
+              page++;
             }
 
             return paginatedContent;
